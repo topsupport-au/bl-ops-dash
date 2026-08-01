@@ -26,7 +26,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 .content { padding: 16px 20px; }
 
-/* DATE TAB */
 .date-section { margin-bottom: 18px; }
 .date-header { background: #1a1a1a; color: white; padding: 10px 16px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
 .date-label { font-size: 14px; font-weight: 600; }
@@ -75,7 +74,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .cc-chip { display: inline-flex; align-items: center; gap: 5px; background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 3px 10px; font-size: 12px; }
 .cc-chip .cnt { font-weight: 700; }
 
-/* COLOUR TAB */
 .colour-section { margin-bottom: 18px; }
 .colour-header { padding: 12px 16px; border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
 .colour-swatch { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; }
@@ -95,7 +93,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .li-word { font-size: 10px; color: #888; }
 .li-size { font-size: 10px; color: #aaa; }
 
-/* shared */
 .loading { text-align: center; padding: 60px 20px; color: #888; }
 .spinner { width: 30px; height: 30px; border: 3px solid #eee; border-top-color: #1a1a1a; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -103,7 +100,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .no-orders { padding: 30px; text-align: center; color: #888; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-.unknown-colour { font-size: 10px; color: #bbb; font-style: italic; }
 </style>
 </head>
 <body>
@@ -111,7 +107,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div class="header">
   <div>
     <h1>🎨 Painting Checklist</h1>
-    <div class="subtitle">Bubble Letters — live from Google Drive</div>
+    <div class="subtitle" id="lastUpdated">Bubble Letters — live from Google Sheets</div>
   </div>
   <button class="reload-btn" onclick="loadData()">↻ Refresh</button>
 </div>
@@ -129,13 +125,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 
 <div class="content">
-  <div id="loading" class="loading"><div class="spinner"></div>Loading from Google Drive…</div>
+  <div id="loading" class="loading"><div class="spinner"></div>Loading from Google Sheets…</div>
   <div class="tab-content active" id="tab-date"></div>
   <div class="tab-content" id="tab-colour"></div>
 </div>
 
 <script>
-const FILE_ID = '1WSnH684oasgzC09zjjmdCNp-5gttEH3sPNHnCY7_ItU';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxjxFKnlhBECY0fw3vhjNEgDPnNNeNPasU53zmCDo2t6kCw0wYXRqDxHzpVLUQfEwYM/exec';
 
 const STAGES = [
   'Waiting to print','3D Printed','Sanded',
@@ -148,153 +144,104 @@ const STAGE_GROUP = {
   'Tissue Wrapped':'pack','Packed':'pack','Shipped':'ship'
 };
 
-// ── Exact 19 colours ──────────────────────────────────────────
 const COLOURS = {
-  'wine red':        '#7B1C1C',
-  'pastel pink':     '#FFB3C1',
-  'dust pink':       '#D48C8E',
-  'pastel terra':    '#C4815E',
-  'pastel blue':     '#A8C8EA',
-  'ocean blue':      '#1A7ABF',
-  'cream':           '#FFF8DC',
-  'pastel lilac':    '#C9A8D4',
-  'sage green':      '#87A878',
-  'chocolate brown': '#6B3A1F',
-  'caramel':         '#C68642',
-  'forest green':    '#2D6A2D',
-  'red':             '#CC2222',
-  'orange':          '#FF8C00',
-  'yellow':          '#FFD700',
-  'green':           '#22AA22',
-  'sky blue':        '#87CEEB',
-  'purple':          '#9B59B6',
-  'pink':            '#FF69B4',
+  'wine red':'#7B1C1C','pastel pink':'#FFB3C1','dust pink':'#D48C8E',
+  'pastel terra':'#C4815E','pastel blue':'#A8C8EA','ocean blue':'#1A7ABF',
+  'cream':'#FFF8DC','pastel lilac':'#C9A8D4','sage green':'#87A878',
+  'chocolate brown':'#6B3A1F','caramel':'#C68642','forest green':'#2D6A2D',
+  'red':'#CC2222','orange':'#FF8C00','yellow':'#FFD700',
+  'green':'#22AA22','sky blue':'#87CEEB','purple':'#9B59B6','pink':'#FF69B4',
 };
 
-// ── Aliases — all the spreadsheet variations → canonical name ──
 const ALIASES = {
-  // Wine Red
-  'wine':'wine red','red wine':'wine red','red whine':'wine red',
-  'winered':'wine red','wiggly red':'red',
-  // Pastel Pink
+  'wine':'wine red','red wine':'wine red','red whine':'wine red','winered':'wine red',
   'light pink':'pastel pink','pale pink':'pastel pink','baby pink':'pastel pink',
-  'pinky pastel':'pastel pink','all pastel pink':'pastel pink',
-  'patel pink':'pastel pink',
-  // Dust Pink
+  'pinky pastel':'pastel pink','patel pink':'pastel pink',
   'dusty pink':'dust pink','dusk pink':'dust pink',
-  // Pastel Terra
-  'terra':'pastel terra','terra pastel':'pastel terra',
-  'pastel terracotta':'pastel terra','pastel tierra':'pastel terra',
-  'pastel erra':'pastel terra','pastel terr':'pastel terra',
-  // Pastel Blue
+  'terra':'pastel terra','terra pastel':'pastel terra','pastel terracotta':'pastel terra',
+  'pastel tierra':'pastel terra','pastel erra':'pastel terra',
   'pale blue':'pastel blue','light blue':'pastel blue','dust blue':'pastel blue',
-  'all pastel blue':'pastel blue','wiggly blue':'sky blue',
-  // Ocean Blue
-  'dark ocean blue':'ocean blue','navy':'ocean blue','cobalt':'ocean blue',
-  'cobalt blue':'ocean blue',
-  // Cream
+  'dark ocean blue':'ocean blue','navy':'ocean blue','cobalt blue':'ocean blue',
   'creme':'cream','pastel cream':'cream',
-  // Pastel Lilac
-  'lilac':'pastel lilac','pastel liliac':'pastel lilac','patel lilac':'pastel lilac',
-  'pastel purple':'pastel lilac',
-  // Sage Green
+  'lilac':'pastel lilac','pastel liliac':'pastel lilac','patel lilac':'pastel lilac','pastel purple':'pastel lilac',
   'sage':'sage green','sagegreen':'sage green','safe green':'sage green',
   'saga green':'sage green','sage greem':'sage green','green sage':'sage green',
-  'pastel sage green':'sage green','all sage green':'sage green',
-  'ocean green':'sage green','pastel green':'sage green','saliegroen':'sage green',
-  // Chocolate Brown
-  'choc':'chocolate brown','choc brown':'chocolate brown',
-  'chocolate':'chocolate brown','brown':'chocolate brown',
-  // Forest Green
+  'pastel sage green':'sage green','ocean green':'sage green','pastel green':'sage green',
+  'saliegroen':'sage green',
+  'choc':'chocolate brown','choc brown':'chocolate brown','chocolate':'chocolate brown','brown':'chocolate brown',
   'forrest green':'forest green',
-  // Yellow
   'butter yellow':'yellow','pastel yellow':'yellow','wiggly yellow':'yellow',
-  // Purple
-  'purple':'purple',
-  // Pink (bright)
-  'hot pink':'pink',
+  'wiggly blue':'sky blue','wiggly red':'red','hot pink':'pink',
 };
 
 function normalise(raw) {
   if (!raw) return null;
-  let n = raw.toLowerCase().trim().replace(/[.,;:]+$/, '').replace(/\s+/g,' ');
-  // Direct match
+  let n = String(raw).toLowerCase().trim().replace(/[.,;:]+$/,'').replace(/\s+/g,' ');
   if (COLOURS[n]) return n;
-  // Alias
   if (ALIASES[n]) return ALIASES[n];
-  // Partial alias scan (longest match first)
   const aliasKeys = Object.keys(ALIASES).sort((a,b)=>b.length-a.length);
   for (const k of aliasKeys) { if (n.includes(k)) return ALIASES[k]; }
-  // Partial colour name scan
   const colKeys = Object.keys(COLOURS).sort((a,b)=>b.length-a.length);
   for (const k of colKeys) { if (n.includes(k)) return k; }
   return null;
 }
 
-function hexOf(canonical) { return COLOURS[canonical] || '#ccc'; }
+function hexOf(c) { return COLOURS[c] || '#ccc'; }
 
 function textOn(hex) {
-  const h = hex.replace('#','');
-  if (h.length < 6) return '#fff';
-  const r=parseInt(h.substr(0,2),16), g=parseInt(h.substr(2,2),16), b=parseInt(h.substr(4,2),16);
-  return (0.299*r+0.587*g+0.114*b)/255 > 0.55 ? '#1a1a1a' : '#ffffff';
+  const h=hex.replace('#','');
+  if(h.length<6) return '#fff';
+  const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);
+  return (0.299*r+0.587*g+0.114*b)/255>0.55?'#1a1a1a':'#ffffff';
 }
 
-// ── CSV parser ────────────────────────────────────────────────
-function parseCSV(text) {
-  const lines=[]; let cur=[],field='',inQ=false;
-  for (let i=0;i<text.length;i++) {
-    const c=text[i];
-    if (inQ){ if(c==='"'&&text[i+1]==='"'){field+='"';i++;} else if(c==='"')inQ=false; else field+=c; }
-    else { if(c==='"')inQ=true; else if(c===','){cur.push(field);field='';} else if(c==='\n'){cur.push(field);lines.push(cur);cur=[];field='';} else if(c!=='\r') field+=c; }
-  }
-  if(field||cur.length){cur.push(field);lines.push(cur);}
-  return lines;
-}
-
-// ── Colour parser ─────────────────────────────────────────────
 function parseColours(p, word) {
   if (!p||!p.trim()) return [];
-  const t = p.trim();
-  // "All X"
+  const t = String(p).trim();
   const allM = t.match(/^all\s+(.+?)(?:\s+for all letters)?(?:\s+letters)?$/i);
   if (allM) {
-    const cn = normalise(allM[1]);
-    return word.split('').map(l=>({letter:l, canonical:cn, display:cn||allM[1].trim()}));
+    const cn=normalise(allM[1]);
+    return word.split('').map(l=>({letter:l,canonical:cn,display:cn||allM[1].trim()}));
   }
-  // "L: colour" or "L - colour" patterns
-  const re = /\b([A-Z])\s*[:\-]\s*([a-zA-Z][a-zA-Z\s]*?)(?=\s*[,\/\n]|\s+[A-Z]\s*[:\-]|$)/gi;
-  const matches = [...t.matchAll(re)];
+  const re=/\b([A-Z])\s*[:\-]\s*([a-zA-Z][a-zA-Z\s]*?)(?=\s*[,\/\n]|\s+[A-Z]\s*[:\-]|$)/gi;
+  const matches=[...t.matchAll(re)];
   if (matches.length>0) {
     return matches.map(m=>{
-      const raw = m[2].trim().replace(/[,.:]+$/,'').trim();
-      const cn = normalise(raw);
-      return {letter:m[1].toUpperCase(), canonical:cn, display:cn||raw};
+      const raw=m[2].trim().replace(/[,.:]+$/,'').trim();
+      const cn=normalise(raw);
+      return {letter:m[1].toUpperCase(),canonical:cn,display:cn||raw};
     });
   }
-  return [{letter:'*', canonical:null, display:t, raw:true}];
+  return [{letter:'*',canonical:null,display:t,raw:true}];
 }
 
-// ── Date helpers ──────────────────────────────────────────────
 function parseDate(s) {
   if (!s) return new Date(2099,0,1);
+  const str = String(s).trim();
+  // ISO format (from Google Sheets serialisation)
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(+iso[1],+iso[2]-1,+iso[3]);
   const mo={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,
     january:0,february:1,march:2,april:3,june:5,july:6,august:7,september:8,october:9,november:10,december:11};
-  const m1=s.trim().match(/^(\d+)\s+([a-z]+)\s+(\d{4})$/i);
+  const m1=str.match(/^(\d+)\s+([a-z]+)\s+(\d{4})$/i);
   if(m1) return new Date(+m1[3],mo[m1[2].toLowerCase()]??0,+m1[1]);
-  const m2=s.trim().match(/^(\d+)\/(\d+)\/(\d{4})$/);
+  const m2=str.match(/^(\d+)\/(\d+)\/(\d{4})$/);
   if(m2) return new Date(+m2[3],+m2[2]-1,+m2[1]);
   return new Date(2099,0,1);
 }
+
 function fmtDate(s) {
-  const d=parseDate(s); if(d.getFullYear()===2099) return s;
+  const d=parseDate(s); if(d.getFullYear()===2099) return String(s);
   const D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const M=['January','February','March','April','May','June','July','August','September','October','November','December'];
   return `${D[d.getDay()]} ${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}`;
 }
-function daysUntil(s){ const d=parseDate(s),n=new Date();n.setHours(0,0,0,0);return Math.round((d-n)/86400000); }
 
-// ── State ─────────────────────────────────────────────────────
+function daysUntil(s) {
+  const d=parseDate(s),n=new Date();n.setHours(0,0,0,0);
+  return Math.round((d-n)/86400000);
+}
+
 let allOrders=[];
 
 function switchTab(name,el){
@@ -309,57 +256,50 @@ async function loadData() {
   document.getElementById('tab-date').innerHTML='';
   document.getElementById('tab-colour').innerHTML='';
   document.getElementById('summaryBar').style.display='none';
+
   try {
-    const result = await window.cowork.callMcpTool(
-      'mcp__37b5c3e6-6993-46a6-816c-c506b3d90369__download_file_content',
-      {fileId:FILE_ID, exportMimeType:'text/csv'}
-    );
-    let data;
-    try{data=result.structuredContent;}catch(e){}
-    if(!data&&result.content){try{data=JSON.parse(result.content[0]?.text||result.content);}catch(e){}}
-    if(!data) throw new Error('Could not parse response');
-
-    const bytes=Uint8Array.from(atob(data.content),c=>c.charCodeAt(0));
-    const csvText=new TextDecoder('utf-8').decode(bytes);
-    const rows=parseCSV(csvText);
-    if(rows.length<2) throw new Error('Empty spreadsheet');
-
-    const hdr={};
-    rows[0].forEach((c,i)=>{hdr[c.trim()]=i;});
-    const SI=STAGES.map(s=>hdr[s]??-1);
+    const resp = await fetch(SCRIPT_URL);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const rows = await resp.json();
+    if (!Array.isArray(rows)) throw new Error('Unexpected data format');
 
     allOrders=[];
-    for(let ri=1;ri<rows.length;ri++){
-      const r=rows[ri];
-      const orderNum=(r[hdr['Order Number']]||'').trim();
-      const contents=(r[hdr['Order Contents']]||'').trim();
-      if(!orderNum||!contents) continue;
-      const shipped=(r[SI[8]]||'').trim().toLowerCase();
-      if(shipped==='completed') continue;
+    for (const r of rows) {
+      const orderNum = String(r['Order Number']||'').trim();
+      const contents  = String(r['Order Contents']||'').trim();
+      if (!orderNum||!contents) continue;
+
+      const shipped = String(r['Shipped']||'').trim().toLowerCase();
+      if (shipped==='completed') continue;
 
       let nextIdx=0,lastDone=-1;
-      for(let si=0;si<STAGES.length;si++){
-        if((r[SI[si]]||'').trim().toLowerCase()==='completed') lastDone=si;
+      for (let si=0;si<STAGES.length;si++){
+        if(String(r[STAGES[si]]||'').trim().toLowerCase()==='completed') lastDone=si;
         else{nextIdx=si;break;}
       }
-      const colours=parseColours(r[hdr['Personalisation']]||'', contents);
+
+      const colours=parseColours(r['Personalisation']||'', contents);
       allOrders.push({
-        name:(r[hdr['Order Name']]||'').trim(),
-        order:orderNum,
+        name: String(r['Order Name']||'').trim(),
+        order: orderNum,
         contents,
-        cm:(r[hdr['CM']]||'').trim(),
+        cm: String(r['CM']||'').trim(),
         colours,
-        rawP:(r[hdr['Personalisation']]||'').trim(),
-        ship:(r[hdr['Shipping Date']]||'').trim(),
+        ship: String(r['Shipping Date']||'').trim(),
         lastDone, nextIdx,
-        nextStage:STAGES[nextIdx],
+        nextStage: STAGES[nextIdx],
         needsPaint: nextIdx<=5,
       });
     }
+
+    document.getElementById('lastUpdated').textContent =
+      'Last refreshed ' + new Date().toLocaleTimeString();
     render();
+
   } catch(e) {
     document.getElementById('loading').style.display='none';
-    document.getElementById('tab-date').innerHTML=`<div class="error"><strong>Error:</strong> ${e.message}</div>`;
+    document.getElementById('tab-date').innerHTML=
+      `<div class="error"><strong>Error loading data:</strong> ${e.message}</div>`;
     document.getElementById('tab-date').classList.add('active');
   }
 }
@@ -368,14 +308,9 @@ function render(){
   document.getElementById('loading').style.display='none';
   document.getElementById('summaryBar').style.display='';
 
-  const orders = allOrders.filter(o=>o.needsPaint);
-
-  let totalLetters=0, colourSet=new Set();
-  for(const o of orders){
-    for(const c of o.colours){
-      if(!c.raw){ totalLetters++; if(c.canonical) colourSet.add(c.canonical); }
-    }
-  }
+  const orders=allOrders.filter(o=>o.needsPaint);
+  let totalLetters=0,colourSet=new Set();
+  for(const o of orders) for(const c of o.colours) if(!c.raw){totalLetters++;if(c.canonical)colourSet.add(c.canonical);}
   const urgent=orders.filter(o=>daysUntil(o.ship)<=3).length;
   document.getElementById('statOrders').textContent=orders.length;
   document.getElementById('statLetters').textContent=totalLetters;
@@ -407,7 +342,6 @@ function renderDateTab(orders){
     else if(days<=3){dClass='date-soon';badge=`<span class="badge" style="background:#2980b9">${days}d</span>`;}
     else badge=`<span class="badge" style="background:#555">${days}d</span>`;
 
-    // colour tally
     const tally={};
     for(const o of os) for(const c of o.colours) if(c.canonical){tally[c.canonical]=(tally[c.canonical]||0)+1;}
     const tallyArr=Object.entries(tally).sort((a,b)=>b[1]-a[1]);
@@ -420,21 +354,16 @@ function renderDateTab(orders){
       <div class="orders-grid">`;
 
     for(const o of os){
-      const g=STAGE_GROUP[o.nextStage]||'print';
       const dots=STAGES.map((_,si)=>`<div class="sdot ${si<o.nextIdx?'done':si===o.nextIdx?'next':'todo'}"></div>`).join('');
-
       let colHtml='';
       if(o.colours.length===1&&o.colours[0].raw){
         colHtml=`<div class="raw-colours">${o.colours[0].display}</div>`;
       } else {
-        colHtml=`<div class="letter-colours">${o.colours.map(c=>{
-          const hex=c.canonical?hexOf(c.canonical):'#ccc';
-          return `<div class="letter-chip">
-            <span class="ltr">${c.letter!=='*'?c.letter:''}</span>
-            <div class="cdot" style="background:${hex}"></div>
-            <span class="colour-name">${c.display||'?'}</span>
-          </div>`;
-        }).join('')}</div>`;
+        colHtml=`<div class="letter-colours">${o.colours.map(c=>`<div class="letter-chip">
+          <span class="ltr">${c.letter!=='*'?c.letter:''}</span>
+          <div class="cdot" style="background:${c.canonical?hexOf(c.canonical):'#ccc'}"></div>
+          <span class="colour-name">${c.display||'?'}</span>
+        </div>`).join('')}</div>`;
       }
 
       html+=`<div class="order-row">
@@ -466,26 +395,19 @@ function renderDateTab(orders){
 }
 
 function renderColourTab(orders){
-  // build: canonical → [{letter, name, contents, cm, ship, nextStage}]
   const byColour={};
-  for(const o of orders){
-    for(const c of o.colours){
-      if(c.raw||!c.canonical) continue;
-      if(!byColour[c.canonical]) byColour[c.canonical]=[];
-      byColour[c.canonical].push({letter:c.letter, name:o.name, contents:o.contents, cm:o.cm, ship:o.ship, nextStage:o.nextStage});
-    }
+  for(const o of orders) for(const c of o.colours){
+    if(c.raw||!c.canonical) continue;
+    if(!byColour[c.canonical]) byColour[c.canonical]=[];
+    byColour[c.canonical].push({letter:c.letter,name:o.name,contents:o.contents,cm:o.cm,ship:o.ship,nextStage:o.nextStage});
   }
 
-  // Sort by count desc, preserving canonical order for ties
   const sorted=Object.entries(byColour).sort((a,b)=>b[1].length-a[1].length);
   if(!sorted.length){document.getElementById('tab-colour').innerHTML='<div class="no-orders">🎉 Nothing left to paint!</div>';return;}
 
   let html='';
   for(const [colour,items] of sorted){
-    const bg=hexOf(colour);
-    const fg=textOn(bg);
-
-    // group by date
+    const bg=hexOf(colour),fg=textOn(bg);
     const byDate={};
     for(const it of items){if(!byDate[it.ship])byDate[it.ship]=[];byDate[it.ship].push(it);}
     const sortedDates=Object.keys(byDate).sort((a,b)=>parseDate(a)-parseDate(b));
@@ -503,23 +425,22 @@ function renderColourTab(orders){
       </div>`;
 
     for(const date of sortedDates){
-      const di=byDate[date];
-      const days=daysUntil(date);
+      const di=byDate[date],days=daysUntil(date);
       let urgStyle='';
-      if(days<0) urgStyle='color:#c0392b;font-weight:700;';
-      else if(days<=3) urgStyle='color:#2980b9;font-weight:700;';
+      if(days<0)urgStyle='color:#c0392b;font-weight:700;';
+      else if(days<=3)urgStyle='color:#2980b9;font-weight:700;';
 
       html+=`<div class="colour-date-block">
         <div class="colour-date-label">
-          <span style="${urgStyle}">${fmtDate(date)}${days<0?` ⚠️ ${Math.abs(days)}d overdue`:days<=3?` · ${days}d away`:days===0?' · Today!':''}</span>
+          <span style="${urgStyle}">${fmtDate(date)}${days<0?` ⚠️ ${Math.abs(days)}d overdue`:days===0?' · Today!':days<=3?` · ${days}d away`:''}</span>
           <span class="dl-count">${di.length} letter${di.length!==1?'s':''}</span>
         </div>
         <div class="letter-items">`;
 
       for(const it of di){
-        const letterColour = bg==='#FFF8DC'||bg==='#A8C8EA'||bg==='#FFD700'||bg==='#FFB3C1'||bg==='#87CEEB'||bg==='#C9A8D4'||bg==='#FF8C00' ? '#1a1a1a' : bg;
+        const lc = textOn(bg)==='#1a1a1a' ? bg : (bg==='#FFF8DC'?'#bbb':bg);
         html+=`<div class="letter-item">
-          <div class="li-letter" style="color:${letterColour}">${it.letter}</div>
+          <div class="li-letter" style="color:${lc}">${it.letter}</div>
           <div class="li-name">${it.name.split(' ')[0]}</div>
           <div class="li-word">${it.contents}</div>
           ${it.cm?`<div class="li-size">${it.cm}cm</div>`:''}
