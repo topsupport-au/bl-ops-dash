@@ -494,7 +494,7 @@ function renderColourTab(orders){
     // Review rows inside this date block
     if (dateUnknowns.length) {
       html+=`<div style="border-top:2px solid #f39c12;">
-        <div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">⚠️ Needs colour review — ${dateUnknowns.length} order${dateUnknowns.length!==1?'s':''}</div>`;
+        <div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">⚠️ Colour to be confirmed — ${dateUnknowns.length} order${dateUnknowns.length!==1?'s':''}</div>`;
       for(const o of dateUnknowns){
         html+=`<div class="order-row">
           <div class="order-info">
