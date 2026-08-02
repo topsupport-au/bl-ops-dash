@@ -226,8 +226,12 @@ function parseColours(p, word) {
   }
 
   // Try normalising the whole string as a single colour
-  const wholeColour = normalise(t);
-  if (wholeColour) return word.split('').map(l=>({letter:l,canonical:wholeColour,display:wholeColour}));
+  // Skip if text has commas — that's a multi-item description (e.g. "Mix of blues, sage, warm tones"),
+  // not a single colour name. Would cause partial matches like "sage" → sage green incorrectly.
+  if (!t.includes(',')) {
+    const wholeColour = normalise(t);
+    if (wholeColour) return word.split('').map(l=>({letter:l,canonical:wholeColour,display:wholeColour}));
+  }
 
   return [{letter:'*',canonical:null,display:t,raw:true}];
 }
@@ -504,7 +508,7 @@ function renderColourTab(orders){
           </div>
           <div class="order-letters">
             <div class="letter-name">${o.contents}</div>
-            <div class="raw-colours">📋 "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
+            <div class="raw-colours">📝 <strong>Note:</strong> "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
           </div>
         </div>`;
       }
@@ -545,7 +549,7 @@ function renderColourTab(orders){
           </div>
           <div class="order-letters">
             <div class="letter-name">${o.contents}</div>
-            <div class="raw-colours">📋 "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
+            <div class="raw-colours">📝 <strong>Note:</strong> "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
           </div>
         </div>`;
       }
