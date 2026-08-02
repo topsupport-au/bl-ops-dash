@@ -215,7 +215,7 @@ function parseColours(p, word) {
   }
 
   // Per-letter patterns: "L: colour" or "L - colour"
-  const re=/\b([A-Z])\s*[:\-]\s*([a-zA-Z][a-zA-Z\s]*?)(?=\s*[,\/\n]|\s+[A-Z]\s*[:\-]|$)/gi;
+  const re=/\b([A-Z])\s*[:\-]\s*([a-zA-Z][a-zA-Z\s]*?)(?=\s*[,.\/\n]|\s+[A-Z]\s*[:\-]|$)/gi;
   const matches=[...t.matchAll(re)];
   if (matches.length>0) {
     return matches.map(m=>{
