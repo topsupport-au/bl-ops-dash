@@ -198,11 +198,23 @@ function textOn(hex) {
 function parseColours(p, word) {
   if (!p||!p.trim()) return [];
   const t = String(p).trim();
-  const allM = t.match(/^all\s+(.+?)(?:\s+for all letters)?(?:\s+letters)?$/i);
-  if (allM) {
-    const cn=normalise(allM[1]);
-    return word.split('').map(l=>({letter:l,canonical:cn,display:cn||allM[1].trim()}));
+
+  // All-same-colour patterns (handles typos like "al" for "all")
+  const allTests = [
+    t.match(/^all\s+(.+?)(?:\s+for\s+al+\s+letters?)?$/i),         // "all pastel blue"
+    t.match(/^(.+?)\s+for\s+al+\s+letters?$/i),                      // "pastel blue for al letters"
+    t.match(/^all\s+letters?\s+(?:in\s+)?(.+?)$/i),                  // "all letters in pastel blue"
+    t.match(/^(.+?)\s+for\s+all$/i),                                  // "X for all"
+    t.match(/^(.+?)\s+(?:in\s+)?all\s+letters?$/i),                  // "X in all letters"
+  ];
+  for (const m of allTests) {
+    if (m) {
+      const cn = normalise(m[1]);
+      if (cn) return word.split('').map(l=>({letter:l,canonical:cn,display:cn}));
+    }
   }
+
+  // Per-letter patterns: "L: colour" or "L - colour"
   const re=/\b([A-Z])\s*[:\-]\s*([a-zA-Z][a-zA-Z\s]*?)(?=\s*[,\/\n]|\s+[A-Z]\s*[:\-]|$)/gi;
   const matches=[...t.matchAll(re)];
   if (matches.length>0) {
@@ -212,6 +224,11 @@ function parseColours(p, word) {
       return {letter:m[1].toUpperCase(),canonical:cn,display:cn||raw};
     });
   }
+
+  // Try normalising the whole string as a single colour
+  const wholeColour = normalise(t);
+  if (wholeColour) return word.split('').map(l=>({letter:l,canonical:wholeColour,display:wholeColour}));
+
   return [{letter:'*',canonical:null,display:t,raw:true}];
 }
 
@@ -471,6 +488,46 @@ function renderColourTab(orders){
     }
     html+=`</div></div>`;
   }
+  // ── Unknown / needs review ────────────────────────────────
+  const unknowns = orders.filter(o => o.colours.some(c => c.raw || !c.canonical));
+  if (unknowns.length) {
+    html += `<div class="colour-section">
+      <div class="colour-header" style="background:#e67e22;color:#fff">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:20px;line-height:1;">⚠️</div>
+          <div>
+            <div class="colour-title">Needs Colour Review</div>
+            <div class="colour-subtitle">${unknowns.length} order${unknowns.length!==1?'s':''} — colour instructions couldn't be read automatically</div>
+          </div>
+        </div>
+        <div class="colour-total">${unknowns.length}</div>
+      </div>
+      <div class="orders-grid">`;
+
+    // Group by ship date
+    const uByDate={};
+    for(const o of unknowns){if(!uByDate[o.ship])uByDate[o.ship]=[];uByDate[o.ship].push(o);}
+    const uDates=Object.keys(uByDate).sort((a,b)=>parseDate(a)-parseDate(b));
+
+    for(const date of uDates){
+      html+=`<div style="background:#fff8f0;padding:6px 14px;border-bottom:1px solid #fde8d0;font-size:11px;font-weight:700;color:#e67e22;">${fmtDate(date)}</div>`;
+      for(const o of uByDate[date]){
+        html+=`<div class="order-row">
+          <div class="order-info">
+            <div class="customer-name">${o.name}</div>
+            <div class="order-num">${o.order}</div>
+            ${o.cm?`<span class="order-size">${o.cm}cm</span>`:''}
+          </div>
+          <div class="order-letters">
+            <div class="letter-name">${o.contents}</div>
+            <div class="raw-colours">📋 "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
+          </div>
+        </div>`;
+      }
+    }
+    html+=`</div></div>`;
+  }
+
   document.getElementById('tab-colour').innerHTML=html;
 }
 
