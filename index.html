@@ -445,9 +445,13 @@ function renderColourTab(orders){
     const totalLetters=Object.values(colourMap).reduce((s,arr)=>s+arr.length,0);
     const sortedColours=Object.entries(colourMap).sort((a,b)=>b[1].length-a[1].length);
 
+    // Unknown colour orders for this date
+    const dateUnknowns = orders.filter(o => o.ship===date && o.colours.some(c=>c.raw||!c.canonical));
+    const totalMeta = `${sortedColours.length} colour${sortedColours.length!==1?'s':''} · ${totalLetters} letters${dateUnknowns.length?` · ⚠️ ${dateUnknowns.length} need review`:''}`;
+
     html+=`<div class="date-section ${dClass}">
       <div class="date-header">
-        <div><div class="date-label">${fmtDate(date)}</div><div class="date-meta">${sortedColours.length} colour${sortedColours.length!==1?'s':''} · ${totalLetters} letters total</div></div>
+        <div><div class="date-label">${fmtDate(date)}</div><div class="date-meta">${totalMeta}</div></div>
         <div style="display:flex;gap:8px;align-items:center">${badge}<span class="date-count">${totalLetters} letters</span></div>
       </div>
       <div class="orders-grid">`;
@@ -486,9 +490,30 @@ function renderColourTab(orders){
       }
       html+=`</div>`;
     }
+
+    // Review rows inside this date block
+    if (dateUnknowns.length) {
+      html+=`<div style="border-top:2px solid #f39c12;">
+        <div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">⚠️ Needs colour review — ${dateUnknowns.length} order${dateUnknowns.length!==1?'s':''}</div>`;
+      for(const o of dateUnknowns){
+        html+=`<div class="order-row">
+          <div class="order-info">
+            <div class="customer-name">${o.name}</div>
+            <div class="order-num">${o.order}</div>
+            ${o.cm?`<span class="order-size">${o.cm}cm</span>`:''}
+          </div>
+          <div class="order-letters">
+            <div class="letter-name">${o.contents}</div>
+            <div class="raw-colours">📋 "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
+          </div>
+        </div>`;
+      }
+      html+=`</div>`;
+    }
+
     html+=`</div></div>`;
   }
-  // ── Unknown / needs review ────────────────────────────────
+  // ── Unknown / needs review (summary at bottom) ────────────
   const unknowns = orders.filter(o => o.colours.some(c => c.raw || !c.canonical));
   if (unknowns.length) {
     html += `<div class="colour-section">
