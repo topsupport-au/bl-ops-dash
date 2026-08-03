@@ -481,13 +481,24 @@ function renderColourTab(orders){
 
       for(const sz of sizeKeys){
         const sItems=bySize[sz];
+        // Group identical letters so you can grab them together from the bucket
+        const byLetter={};
+        for(const it of sItems){
+          if(!byLetter[it.letter]) byLetter[it.letter]=[];
+          byLetter[it.letter].push(it);
+        }
+        const sortedLetters=Object.keys(byLetter).sort();
         html+=`<div style="margin-bottom:8px;">
           <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">${sz}cm — ${sItems.length} letter${sItems.length!==1?'s':''}</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;">`;
-        for(const it of sItems){
+        for(const ltr of sortedLetters){
+          const grp=byLetter[ltr];
+          const cnt=grp.length;
+          const words=grp.map(it=>it.contents).join(' · ');
           html+=`<div style="display:flex;flex-direction:column;align-items:center;background:${bg};border-radius:6px;padding:6px 9px;min-width:52px;text-align:center;">
-            <div style="font-size:19px;font-weight:800;color:${fg};line-height:1;">${it.letter}</div>
-            <div style="font-size:9px;color:${fg};opacity:0.8;margin-top:2px;">${it.contents}</div>
+            <div style="font-size:19px;font-weight:800;color:${fg};line-height:1;">${ltr}</div>
+            ${cnt>1?`<div style="font-size:12px;font-weight:700;color:${fg};opacity:0.95;margin-top:1px;">×${cnt}</div>`:''}
+            <div style="font-size:9px;color:${fg};opacity:0.8;margin-top:2px;max-width:80px;word-break:break-word;">${words}</div>
           </div>`;
         }
         html+=`</div></div>`;
