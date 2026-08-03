@@ -106,26 +106,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 <div class="header">
   <div>
-    <h1>🎨 Painting Checklist</h1>
-    <div class="subtitle" id="lastUpdated">Bubble Letters — live from Google Sheets</div>
+    <h1>ð¨ Painting Checklist</h1>
+    <div class="subtitle" id="lastUpdated">Bubble Letters â live from Google Sheets</div>
   </div>
-  <button class="reload-btn" onclick="loadData()">↻ Refresh</button>
+  <button class="reload-btn" onclick="loadData()">â» Refresh</button>
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('date',this)">📅 By Delivery Date</div>
-  <div class="tab" onclick="switchTab('colour',this)">🎨 By Colour (Bulk Paint)</div>
+  <div class="tab active" onclick="switchTab('date',this)">ð By Delivery Date</div>
+  <div class="tab" onclick="switchTab('colour',this)">ð¨ By Colour (Bulk Paint)</div>
 </div>
 
 <div class="summary-bar" id="summaryBar" style="display:none">
   <div class="stat"><div class="num" id="statOrders">-</div><div class="lbl">Pending orders</div></div>
   <div class="stat"><div class="num" id="statLetters">-</div><div class="lbl">Letters to paint</div></div>
   <div class="stat"><div class="num" id="statColours">-</div><div class="lbl">Colours needed</div></div>
-  <div class="stat"><div class="num" id="statUrgent">-</div><div class="lbl">Due ≤3 days</div></div>
+  <div class="stat"><div class="num" id="statUrgent">-</div><div class="lbl">Due â¤3 days</div></div>
 </div>
 
 <div class="content">
-  <div id="loading" class="loading"><div class="spinner"></div>Loading from Google Sheets…</div>
+  <div id="loading" class="loading"><div class="spinner"></div>Loading from Google Sheetsâ¦</div>
   <div class="tab-content active" id="tab-date"></div>
   <div class="tab-content" id="tab-colour"></div>
 </div>
@@ -226,8 +226,8 @@ function parseColours(p, word) {
   }
 
   // Try normalising the whole string as a single colour
-  // Skip if text has commas — that's a multi-item description (e.g. "Mix of blues, sage, warm tones"),
-  // not a single colour name. Would cause partial matches like "sage" → sage green incorrectly.
+  // Skip if text has commas â that's a multi-item description (e.g. "Mix of blues, sage, warm tones"),
+  // not a single colour name. Would cause partial matches like "sage" â sage green incorrectly.
   if (!t.includes(',')) {
     const wholeColour = normalise(t);
     if (wholeColour) return word.split('').map(l=>({letter:l,canonical:wholeColour,display:wholeColour}));
@@ -357,7 +357,7 @@ function renderDateTab(orders){
   const byDate={};
   for(const o of orders){if(!byDate[o.ship])byDate[o.ship]=[];byDate[o.ship].push(o);}
   const sorted=Object.keys(byDate).sort((a,b)=>parseDate(a)-parseDate(b));
-  if(!sorted.length){document.getElementById('tab-date').innerHTML='<div class="no-orders">🎉 Nothing left to paint!</div>';return;}
+  if(!sorted.length){document.getElementById('tab-date').innerHTML='<div class="no-orders">ð Nothing left to paint!</div>';return;}
 
   let html='';
   for(const date of sorted){
@@ -412,8 +412,8 @@ function renderDateTab(orders){
     }
 
     if(tallyArr.length){
-      html+=`<div class="date-colours"><div class="dc-title">🎨 Paint colours needed:</div><div class="colour-counts">`;
-      html+=tallyArr.map(([cn,cnt])=>`<div class="cc-chip"><div class="cdot" style="background:${hexOf(cn)}"></div><span class="cnt">${cnt}×</span>${cn}</div>`).join('');
+      html+=`<div class="date-colours"><div class="dc-title">ð¨ Paint colours needed:</div><div class="colour-counts">`;
+      html+=tallyArr.map(([cn,cnt])=>`<div class="cc-chip"><div class="cdot" style="background:${hexOf(cn)}"></div><span class="cnt">${cnt}Ã</span>${cn}</div>`).join('');
       html+=`</div></div>`;
     }
     html+=`</div></div>`;
@@ -434,7 +434,7 @@ function renderColourTab(orders){
   }
 
   const sortedDates=Object.keys(byDate).sort((a,b)=>parseDate(a)-parseDate(b));
-  if(!sortedDates.length){document.getElementById('tab-colour').innerHTML='<div class="no-orders">🎉 Nothing left to paint!</div>';return;}
+  if(!sortedDates.length){document.getElementById('tab-colour').innerHTML='<div class="no-orders">ð Nothing left to paint!</div>';return;}
 
   let html='';
   for(const date of sortedDates){
@@ -451,7 +451,7 @@ function renderColourTab(orders){
 
     // Unknown colour orders for this date
     const dateUnknowns = orders.filter(o => o.ship===date && o.colours.some(c=>c.raw||!c.canonical));
-    const totalMeta = `${sortedColours.length} colour${sortedColours.length!==1?'s':''} · ${totalLetters} letters${dateUnknowns.length?` · ⚠️ ${dateUnknowns.length} need review`:''}`;
+    const totalMeta = `${sortedColours.length} colour${sortedColours.length!==1?'s':''} Â· ${totalLetters} letters${dateUnknowns.length?` Â· â ï¸ ${dateUnknowns.length} need review`:''}`;
 
     html+=`<div class="date-section ${dClass}">
       <div class="date-header">
@@ -489,15 +489,15 @@ function renderColourTab(orders){
         }
         const sortedLetters=Object.keys(byLetter).sort();
         html+=`<div style="margin-bottom:8px;">
-          <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">${sz}cm — ${sItems.length} letter${sItems.length!==1?'s':''}</div>
+          <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">${sz}cm â ${sItems.length} letter${sItems.length!==1?'s':''}</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;">`;
         for(const ltr of sortedLetters){
           const grp=byLetter[ltr];
           const cnt=grp.length;
-          const words=grp.map(it=>it.contents).join(' · ');
+          const words=grp.map(it=>it.contents).join(' Â· ');
           html+=`<div style="display:flex;flex-direction:column;align-items:center;background:${bg};border-radius:6px;padding:6px 9px;min-width:52px;text-align:center;">
             <div style="font-size:19px;font-weight:800;color:${fg};line-height:1;">${ltr}</div>
-            ${cnt>1?`<div style="font-size:12px;font-weight:700;color:${fg};opacity:0.95;margin-top:1px;">×${cnt}</div>`:''}
+            ${cnt>1?`<div style="font-size:12px;font-weight:700;color:${fg};opacity:0.95;margin-top:1px;">Ã${cnt}</div>`:''}
             <div style="font-size:9px;color:${fg};opacity:0.8;margin-top:2px;max-width:80px;word-break:break-word;">${words}</div>
           </div>`;
         }
@@ -509,7 +509,7 @@ function renderColourTab(orders){
     // Review rows inside this date block
     if (dateUnknowns.length) {
       html+=`<div style="border-top:2px solid #f39c12;">
-        <div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">⚠️ Colour to be confirmed — ${dateUnknowns.length} order${dateUnknowns.length!==1?'s':''}</div>`;
+        <div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">â ï¸ Colour to be confirmed â ${dateUnknowns.length} order${dateUnknowns.length!==1?'s':''}</div>`;
       for(const o of dateUnknowns){
         html+=`<div class="order-row">
           <div class="order-info">
@@ -519,7 +519,7 @@ function renderColourTab(orders){
           </div>
           <div class="order-letters">
             <div class="letter-name">${o.contents}</div>
-            <div class="raw-colours">📝 <strong>Note:</strong> "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
+            <div class="raw-colours">ð <strong>Note:</strong> "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' Â· ')}"</div>
           </div>
         </div>`;
       }
@@ -528,16 +528,16 @@ function renderColourTab(orders){
 
     html+=`</div></div>`;
   }
-  // ── Unknown / needs review (summary at bottom) ────────────
+  // ââ Unknown / needs review (summary at bottom) ââââââââââââ
   const unknowns = orders.filter(o => o.colours.some(c => c.raw || !c.canonical));
   if (unknowns.length) {
     html += `<div class="colour-section">
       <div class="colour-header" style="background:#e67e22;color:#fff">
         <div style="display:flex;align-items:center;gap:12px">
-          <div style="font-size:20px;line-height:1;">⚠️</div>
+          <div style="font-size:20px;line-height:1;">â ï¸</div>
           <div>
             <div class="colour-title">Needs Colour Review</div>
-            <div class="colour-subtitle">${unknowns.length} order${unknowns.length!==1?'s':''} — colour instructions couldn't be read automatically</div>
+            <div class="colour-subtitle">${unknowns.length} order${unknowns.length!==1?'s':''} â colour instructions couldn't be read automatically</div>
           </div>
         </div>
         <div class="colour-total">${unknowns.length}</div>
@@ -560,7 +560,7 @@ function renderColourTab(orders){
           </div>
           <div class="order-letters">
             <div class="letter-name">${o.contents}</div>
-            <div class="raw-colours">📝 <strong>Note:</strong> "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}"</div>
+            <div class="raw-colours">ð <strong>Note:</strong> "${o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' Â· ')}"</div>
           </div>
         </div>`;
       }
