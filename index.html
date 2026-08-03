@@ -483,14 +483,12 @@ function renderColourTab(orders){
         const sItems=bySize[sz];
         // Group identical letters so you can grab them together from the bucket
         const byLetter={};
-        // Group same letters together for bulk bucket picking
-        const byLtr={}; for(const it of sItems){if(!byLtr[it.letter])byLtr[it.letter]=[];byLtr[it.letter].push(it);}
-        for(const ltr of Object.keys(byLtr).sort()){
-          const grp=byLtr[ltr],cnt=grp.length,words=grp.map(it=>it.contents).join(' · ');
+        // Sort by letter so same letters appear together (O O O, B B B, etc.)
+        const sorted=[...sItems].sort((a,b)=>a.letter.localeCompare(b.letter));
+        for(const it of sorted){
           html+=`<div style="display:flex;flex-direction:column;align-items:center;background:${bg};border-radius:6px;padding:6px 9px;min-width:52px;text-align:center;">
-            <div style="font-size:19px;font-weight:800;color:${fg};line-height:1;">${ltr}</div>
-            ${cnt>1?`<div style="font-size:12px;font-weight:700;color:${fg};opacity:0.9;margin-top:1px;">x${cnt}</div>`:''}
-            <div style="font-size:9px;color:${fg};opacity:0.8;margin-top:2px;max-width:80px;word-break:break-word;">${words}</div>
+            <div style="font-size:19px;font-weight:800;color:${fg};line-height:1;">${it.letter}</div>
+            <div style="font-size:9px;color:${fg};opacity:0.8;margin-top:2px;">${it.contents}</div>
           </div>`;
         }        html+=`</div></div>`;
       }
