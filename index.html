@@ -174,7 +174,7 @@ function orderRowHtml(o){const dots=STAGES.map((_,si)=>'<div class="sdot '+(si<o
 function renderDateTab(orders){
   // Pickup merge groups — dates to combine into one section (months 0-indexed, so 7=August)
   const MERGE_GROUPS=[
-    {key:'mg0',dates:[[2026,7,5],[2026,7,26]]}
+    {key:'mg0',dates:[[2026,7,25],[2026,7,26]]}
   ];
   function getMergeKey(dateStr){const d=parseDate(dateStr);for(const mg of MERGE_GROUPS){for(const [y,m,day] of mg.dates){if(d.getFullYear()===y&&d.getMonth()===m&&d.getDate()===day)return mg.key;}}return null;}
   const byDate={};
