@@ -57,7 +57,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .cdot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); flex-shrink: 0; }
 .colour-name { color: #555; text-transform: capitalize; }
 .letter-chip.no-colour { border: 2px dashed #e67e22; background: #fff8f0; }
-.letter-chip.no-colour .ltr { color: #c0392b; }
+.letter-chip.no-colour .ltr { color: #c0392b; font-weight: 900; }
 .letter-chip.no-colour .chip-size { color: #e67e22; }
 .letter-chip.no-colour .cdot { background: repeating-linear-gradient(45deg,#f39c12 0,#f39c12 2px,#fff8f0 2px,#fff8f0 5px) !important; border-color: #e67e22; }
 .letter-chip.no-colour .colour-name { color: #e67e22; font-style: italic; font-weight: 600; }
@@ -111,24 +111,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <body>
 <div class="header">
   <div>
-    <h1>🎨 Painting Checklist</h1>
-    <div class="subtitle" id="lastUpdated">Bubble Letters — live from Google Sheets</div>
+    <h1>&#127912; Painting Checklist</h1>
+    <div class="subtitle" id="lastUpdated">Bubble Letters &#8212; live from Google Sheets</div>
   </div>
-  <button class="reload-btn" onclick="loadData(true)">↻ Refresh</button>
+  <button class="reload-btn" onclick="loadData(true)">&#8635; Refresh</button>
 </div>
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('date',this)">📅 By Delivery Date</div>
-  <div class="tab" onclick="switchTab('colour',this)">🎨 By Colour</div>
-  <div class="tab" onclick="switchTab('trends',this)">📊 Trends</div>
+  <div class="tab active" onclick="switchTab('date',this)">&#128197; By Delivery Date</div>
+  <div class="tab" onclick="switchTab('colour',this)">&#127912; By Colour</div>
+  <div class="tab" onclick="switchTab('trends',this)">&#128202; Trends</div>
 </div>
 <div class="summary-bar" id="summaryBar" style="display:none">
   <div class="stat"><div class="num" id="statOrders">-</div><div class="lbl">Pending paint</div></div>
   <div class="stat"><div class="num" id="statLetters">-</div><div class="lbl">Letters to paint</div></div>
   <div class="stat"><div class="num" id="statColours">-</div><div class="lbl">Colours needed</div></div>
-  <div class="stat"><div class="num" id="statUrgent">-</div><div class="lbl">Due ≤3 days</div></div>
+  <div class="stat"><div class="num" id="statUrgent">-</div><div class="lbl">Due &#8804;3 days</div></div>
 </div>
 <div class="content">
-  <div id="loading" class="loading"><div class="spinner"></div>Loading from Google Sheets…</div>
+  <div id="loading" class="loading"><div class="spinner"></div>Loading from Google Sheets&#8230;</div>
   <div class="tab-content active" id="tab-date"></div>
   <div class="tab-content" id="tab-colour"></div>
   <div class="tab-content" id="tab-trends"></div>
@@ -158,21 +158,44 @@ async function loadData(forceSpinner){const cachedStr=localStorage.getItem('bl_o
 function render(){const orders=allOrders.filter(o=>o.needsPaint);let totalLetters=0,colourSet=new Set();for(const o of orders)for(const c of o.colours)if(!c.raw){totalLetters++;if(c.canonical)colourSet.add(c.canonical);}const urgent=orders.filter(o=>daysUntil(o.ship)<=3).length;document.getElementById('statOrders').textContent=orders.length;document.getElementById('statLetters').textContent=totalLetters;document.getElementById('statColours').textContent=colourSet.size;document.getElementById('statUrgent').textContent=urgent;renderDateTab(orders);renderColourTab(orders);renderTrendsTab();}
 function stagePill(stage){const g=STAGE_GROUP[stage]||'print';return '<span class="stage-pill stage-'+g+'">'+stage+'</span>';}
 function dateSectionOpen(date,dClass,badge,meta,count){const col=getCollapsed();const isCol=col.has(date);const safeKey=date.replace(/&/g,'&amp;').replace(/"/g,'&quot;');return '<div class="date-section '+dClass+(isCol?' collapsed':'')+'" data-date-key="'+safeKey+'"><div class="date-header" onclick="toggleSection(this)"><div><div class="date-label">'+fmtDate(date)+'</div><div class="date-meta">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center">'+badge+'<span class="date-count">'+count+'</span><span class="toggle-arrow">&#9660;</span></div></div><div class="orders-grid">';}
+function buildChips(o){
+  /* If the colour list is per-letter (regex-matched), walk every letter of
+     the word in order and inject a highlighted chip for any letter that was
+     not assigned a colour in the personalisation field. */
+  if(o.colours.length===0) return [];
+  if(o.colours.length===1&&o.colours[0].raw) return o.colours; // unparseable — handled separately
+  // Build lookup: letter char -> colour entry
+  const map={};
+  let isPerLetter=false;
+  for(const c of o.colours){
+    if(c.letter!=='*'&&!c.raw){map[c.letter]=c;isPerLetter=true;}
+  }
+  if(!isPerLetter) return o.colours; // all-same colour — every word letter already covered
+  // Walk word in order, filling gaps with missing chips
+  const chips=[];
+  for(const ch of o.contents){
+    if(!/[A-Za-z]/.test(ch))continue;
+    chips.push(map[ch]||{letter:ch,canonical:null,display:'colour missing',missing:true});
+  }
+  return chips;
+}
+function chipHtml(c,o){
+  const lc=isLower(c.letter);
+  const sz=letterSize(c.letter,o.cm);
+  const missing=!c.canonical;
+  const cls='letter-chip'+(lc?' lc':'')+(missing?' no-colour':'');
+  const dotStyle=missing?'':' style="background:'+hexOf(c.canonical)+'"';
+  const label=missing?('⚠ '+(c.display||'colour missing')):(c.display||'?');
+  return '<div class="'+cls+'"><span class="ltr">'+(c.letter!=='*'?c.letter:'')+'</span>'+(c.letter!=='*'?'<span class="chip-size">'+sz+'cm</span>':'')+'<div class="cdot"'+dotStyle+'></div><span class="colour-name">'+label+'</span></div>';
+}
 function orderRowHtml(o){
   const dots=STAGES.map((_,si)=>'<div class="sdot '+(si<o.nextIdx?'done':si===o.nextIdx?'next':'todo')+'"></div>').join('');
   let colHtml='';
   if(o.colours.length===1&&o.colours[0].raw){
-    colHtml='<div class="raw-colours warn">&#9888; Colour unclear: '+o.colours[0].display+'</div>';
-  } else {
-    colHtml='<div class="letter-colours">'+o.colours.map(c=>{
-      const lc=isLower(c.letter);
-      const sz=letterSize(c.letter,o.cm);
-      const missing=!c.canonical;
-      const cls='letter-chip'+(lc?' lc':'')+(missing?' no-colour':'');
-      const dotStyle=missing?'':' style="background:'+hexOf(c.canonical)+'"';
-      const label=missing?('&#9888; '+(c.display||'?')):(c.display||'?');
-      return '<div class="'+cls+'"><span class="ltr">'+(c.letter!=='*'?c.letter:'')+'</span>'+(c.letter!=='*'?'<span class="chip-size">'+sz+'cm</span>':'')+'<div class="cdot"'+dotStyle+'></div><span class="colour-name">'+label+'</span></div>';
-    }).join('')+'</div>';
+    colHtml='<div class="raw-colours warn">⚠ Colour unclear: '+o.colours[0].display+'</div>';
+  }else{
+    const chips=buildChips(o);
+    colHtml='<div class="letter-colours">'+chips.map(c=>chipHtml(c,o)).join('')+'</div>';
   }
   return '<div class="order-row"><div class="order-info"><div class="customer-name">'+o.name+'</div><div class="order-num">'+o.order+'</div>'+(o.cm?'<span class="order-size">'+o.cm+'cm</span>':'')+'</div><div class="order-letters"><div class="letter-name">'+o.contents+'</div>'+colHtml+'</div><div class="stage-col">'+stagePill(o.nextStage)+'<div class="stage-dots">'+dots+'</div><div class="stage-lbl">'+o.nextIdx+'/'+STAGES.length+' steps done</div></div></div>';
 }
@@ -205,7 +228,7 @@ function renderDateTab(orders){
   }
   document.getElementById('tab-date').innerHTML=html;
 }
-function renderColourTab(orders){const byDate={};for(const o of orders){if(!byDate[o.ship])byDate[o.ship]={};for(const c of o.colours){if(c.raw||!c.canonical)continue;const sz=letterSize(c.letter,o.cm)+'cm';if(!byDate[o.ship][c.canonical])byDate[o.ship][c.canonical]={};if(!byDate[o.ship][c.canonical][sz])byDate[o.ship][c.canonical][sz]=[];byDate[o.ship][c.canonical][sz].push({letter:c.letter,lc:isLower(c.letter),name:o.name,contents:o.contents,cm:o.cm});}}const sortedDates=Object.keys(byDate).sort((a,b)=>parseDate(a)-parseDate(b));if(!sortedDates.length){document.getElementById('tab-colour').innerHTML='<div class="no-orders">Nothing left to paint!</div>';return;}let html='';for(const date of sortedDates){const colourMap=byDate[date];const days=daysUntil(date);let dClass='',badge='';if(days<0){dClass='date-overdue';badge='<span class="badge" style="background:#c0392b">'+Math.abs(days)+'d overdue</span>';}else if(days===0){dClass='date-today';badge='<span class="badge" style="background:#e67e22">Today!</span>';}else if(days<=3){dClass='date-soon';badge='<span class="badge" style="background:#2980b9">'+days+'d</span>';}else badge='<span class="badge" style="background:#555">'+days+'d</span>';let totalLetters=0;Object.values(colourMap).forEach(szMap=>Object.values(szMap).forEach(arr=>totalLetters+=arr.length));const sortedColours=Object.entries(colourMap).sort((a,b)=>{const ca=Object.values(a[1]).reduce((s,x)=>s+x.length,0);const cb=Object.values(b[1]).reduce((s,x)=>s+x.length,0);return cb-ca;});const dateUnknowns=orders.filter(o=>o.ship===date&&o.colours.some(c=>c.raw||!c.canonical));const meta=sortedColours.length+' colour'+(sortedColours.length!==1?'s':'')+' \xb7 '+totalLetters+' letters'+(dateUnknowns.length?' \xb7 '+dateUnknowns.length+' need review':'');html+=dateSectionOpen(date,dClass,badge,meta,totalLetters+' letters');for(const [colour,szMap] of sortedColours){const bg=hexOf(colour),fg=textOn(bg);const sizeKeys=Object.keys(szMap).sort((a,b)=>parseFloat(b)-parseFloat(a));const colTotal=Object.values(szMap).reduce((s,x)=>s+x.length,0);html+='<div style="border-bottom:1px solid #f0f0f0;padding:10px 14px;"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div class="cdot" style="background:'+bg+';width:14px;height:14px;border:1px solid rgba(0,0,0,0.15)"></div><span style="font-weight:700;font-size:13px;text-transform:capitalize;">'+colour+'</span><span style="background:'+bg+';color:'+fg+';padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;">'+colTotal+' letter'+(colTotal!==1?'s':'')+'</span><span style="font-size:11px;color:#999;">'+sizeKeys.map(sz=>szMap[sz].length+'\xd7 '+sz).join(' \xb7 ')+'</span></div>';for(const sz of sizeKeys){const items=[...szMap[sz]].sort((a,b)=>a.letter.localeCompare(b.letter));html+='<div style="margin-bottom:6px;"><div style="font-size:10px;font-weight:700;color:#aaa;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">'+sz+'</div><div style="display:flex;flex-wrap:wrap;gap:5px;">';for(const it of items){const ltrStyle=it.lc?'font-style:italic;':'';const lcBorder=it.lc?'border:2px solid rgba(255,255,255,0.45);':'';html+='<div style="display:flex;flex-direction:column;align-items:center;background:'+bg+';border-radius:6px;padding:6px 9px;min-width:52px;text-align:center;'+lcBorder+'"><div style="font-size:19px;font-weight:800;color:'+fg+';line-height:1;'+ltrStyle+'">'+it.letter+'</div><div style="font-size:9px;color:'+fg+';opacity:0.8;margin-top:2px;">'+it.contents+'</div></div>';}html+='</div></div>';}html+='</div>';}if(dateUnknowns.length){html+='<div style="border-top:2px solid #f39c12;"><div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">&#9888; Colour to be confirmed — '+dateUnknowns.length+' order'+(dateUnknowns.length!==1?'s':'')+'</div>';for(const o of dateUnknowns){html+='<div class="order-row"><div class="order-info"><div class="customer-name">'+o.name+'</div><div class="order-num">'+o.order+'</div>'+(o.cm?'<span class="order-size">'+o.cm+'cm</span>':'')+'</div><div class="order-letters"><div class="letter-name">'+o.contents+'</div><div class="raw-colours warn">&#9888; '+o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' / ')+'</div></div></div>';}html+='</div>';}html+='</div></div>';}document.getElementById('tab-colour').innerHTML=html;}
+function renderColourTab(orders){const byDate={};for(const o of orders){if(!byDate[o.ship])byDate[o.ship]={};for(const c of o.colours){if(c.raw||!c.canonical)continue;const sz=letterSize(c.letter,o.cm)+'cm';if(!byDate[o.ship][c.canonical])byDate[o.ship][c.canonical]={};if(!byDate[o.ship][c.canonical][sz])byDate[o.ship][c.canonical][sz]=[];byDate[o.ship][c.canonical][sz].push({letter:c.letter,lc:isLower(c.letter),name:o.name,contents:o.contents,cm:o.cm});}}const sortedDates=Object.keys(byDate).sort((a,b)=>parseDate(a)-parseDate(b));if(!sortedDates.length){document.getElementById('tab-colour').innerHTML='<div class="no-orders">Nothing left to paint!</div>';return;}let html='';for(const date of sortedDates){const colourMap=byDate[date];const days=daysUntil(date);let dClass='',badge='';if(days<0){dClass='date-overdue';badge='<span class="badge" style="background:#c0392b">'+Math.abs(days)+'d overdue</span>';}else if(days===0){dClass='date-today';badge='<span class="badge" style="background:#e67e22">Today!</span>';}else if(days<=3){dClass='date-soon';badge='<span class="badge" style="background:#2980b9">'+days+'d</span>';}else badge='<span class="badge" style="background:#555">'+days+'d</span>';let totalLetters=0;Object.values(colourMap).forEach(szMap=>Object.values(szMap).forEach(arr=>totalLetters+=arr.length));const sortedColours=Object.entries(colourMap).sort((a,b)=>{const ca=Object.values(a[1]).reduce((s,x)=>s+x.length,0);const cb=Object.values(b[1]).reduce((s,x)=>s+x.length,0);return cb-ca;});const dateUnknowns=orders.filter(o=>o.ship===date&&o.colours.some(c=>c.raw||!c.canonical));const meta=sortedColours.length+' colour'+(sortedColours.length!==1?'s':'')+' \xb7 '+totalLetters+' letters'+(dateUnknowns.length?' \xb7 '+dateUnknowns.length+' need review':'');html+=dateSectionOpen(date,dClass,badge,meta,totalLetters+' letters');for(const [colour,szMap] of sortedColours){const bg=hexOf(colour),fg=textOn(bg);const sizeKeys=Object.keys(szMap).sort((a,b)=>parseFloat(b)-parseFloat(a));const colTotal=Object.values(szMap).reduce((s,x)=>s+x.length,0);html+='<div style="border-bottom:1px solid #f0f0f0;padding:10px 14px;"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div class="cdot" style="background:'+bg+';width:14px;height:14px;border:1px solid rgba(0,0,0,0.15)"></div><span style="font-weight:700;font-size:13px;text-transform:capitalize;">'+colour+'</span><span style="background:'+bg+';color:'+fg+';padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;">'+colTotal+' letter'+(colTotal!==1?'s':'')+'</span><span style="font-size:11px;color:#999;">'+sizeKeys.map(sz=>szMap[sz].length+'\xd7 '+sz).join(' \xb7 ')+'</span></div>';for(const sz of sizeKeys){const items=[...szMap[sz]].sort((a,b)=>a.letter.localeCompare(b.letter));html+='<div style="margin-bottom:6px;"><div style="font-size:10px;font-weight:700;color:#aaa;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">'+sz+'</div><div style="display:flex;flex-wrap:wrap;gap:5px;">';for(const it of items){const ltrStyle=it.lc?'font-style:italic;':'';const lcBorder=it.lc?'border:2px solid rgba(255,255,255,0.45);':'';html+='<div style="display:flex;flex-direction:column;align-items:center;background:'+bg+';border-radius:6px;padding:6px 9px;min-width:52px;text-align:center;'+lcBorder+'"><div style="font-size:19px;font-weight:800;color:'+fg+';line-height:1;'+ltrStyle+'">'+it.letter+'</div><div style="font-size:9px;color:'+fg+';opacity:0.8;margin-top:2px;">'+it.contents+'</div></div>';}html+='</div></div>';}html+='</div>';}if(dateUnknowns.length){html+='<div style="border-top:2px solid #f39c12;"><div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">⚠ Colour to be confirmed — '+dateUnknowns.length+' order'+(dateUnknowns.length!==1?'s':'')+'</div>';for(const o of dateUnknowns){html+='<div class="order-row"><div class="order-info"><div class="customer-name">'+o.name+'</div><div class="order-num">'+o.order+'</div>'+(o.cm?'<span class="order-size">'+o.cm+'cm</span>':'')+'</div><div class="order-letters"><div class="letter-name">'+o.contents+'</div><div class="raw-colours warn">⚠ '+o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' / ')+'</div></div></div>';}html+='</div>';}html+='</div></div>';}document.getElementById('tab-colour').innerHTML=html;}
 function renderTrendsTab(){
   const letterFreq={},letterUcFreq={},letterLcFreq={},colourFreq={},wordFreq={},sizeFreq={},stageFreq={};
   for(const o of allOrders){
@@ -236,8 +259,7 @@ function renderTrendsTab(){
   html+='<div class="legend-row"><span><span class="legend-dot" style="background:#2c3e50"></span>Uppercase</span><span><span class="legend-dot" style="background:#7c4dbd"></span>Lowercase</span></div></div>';
   html+='<div class="trends-card"><div class="tc-title">&#9997;&#65039; Popular Names</div>';
   for(const [w,cnt] of topWords){const pct=Math.round(cnt/maxWF*100);html+='<div class="bar-row"><span style="font-weight:700;font-size:12px;letter-spacing:0.5px;width:100px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+w+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#2c3e50"></div></div><span class="bar-val">'+cnt+'</span></div>';}
-  html+='</div><div class="trends-card"><div class="tc-title">&#128207; Sizes &amp; Pipeline</div>';
-  html+='<div class="sub-section-title">Order sizes</div>';
+  html+='</div><div class="trends-card"><div class="tc-title">&#128207; Sizes &amp; Pipeline</div><div class="sub-section-title">Order sizes</div>';
   for(const [sz,cnt] of Object.entries(sizeFreq).sort((a,b)=>b[1]-a[1])){const pct=Math.round(cnt/maxSZ*100);html+='<div class="bar-row"><span style="font-weight:700;font-size:12px;width:42px;flex-shrink:0">'+sz+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#2980b9"></div></div><span class="bar-val">'+cnt+'</span></div>';}
   html+='<div class="sub-section-title">Pipeline stage</div>';
   for(const [sg,cnt] of Object.entries(stageFreq).sort((a,b)=>b[1]-a[1])){const pct=Math.round(cnt/maxSG*100);const sc=stageColors[sg]||'#999';html+='<div class="bar-row"><span style="font-size:12px;width:90px;flex-shrink:0">'+(stageLabels[sg]||sg)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+sc+'"></div></div><span class="bar-val">'+cnt+'</span></div>';}
