@@ -62,7 +62,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .letter-chip.no-colour .cdot{background:repeating-linear-gradient(45deg,#f39c12 0,#f39c12 2px,#fff8f0 2px,#fff8f0 5px)!important;border-color:#e67e22;}
 .letter-chip.no-colour .colour-name{color:#e67e22;font-style:italic;font-weight:600;}
 .raw-source{font-size:10px;color:#bbb;margin-top:4px;font-style:italic;}
-.raw-source span{color:#e67e22;font-style:normal;font-weight:600;}
 .raw-colours{font-size:11px;color:#999;font-style:italic;margin-top:3px;word-break:break-word;}
 .raw-colours.warn{color:#e67e22;font-weight:600;border:1px dashed #e67e22;border-radius:4px;padding:2px 7px;font-style:normal;display:inline-block;margin-top:4px;}
 .stage-col{flex:0 0 160px;}
@@ -90,7 +89,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .no-orders{padding:30px;text-align:center;color:#888;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
-/* Colour tester panel */
 .colour-tester{background:white;border:1px solid #e0e0e0;border-radius:8px;padding:14px 16px;margin-bottom:16px;}
 .colour-tester h3{font-size:13px;font-weight:700;margin-bottom:10px;color:#555;}
 .tester-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -99,7 +97,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tester-btn{background:#1a1a1a;color:white;border:none;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;}
 .tester-result{margin-top:10px;font-size:13px;display:none;align-items:center;gap:8px;flex-wrap:wrap;}
 .tester-result.show{display:flex;}
-/* Trends */
 .trends-wrap{max-width:960px;}
 .trends-stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
 .ts{background:white;border-radius:8px;padding:14px 18px;flex:1;min-width:120px;border:1px solid #e0e0e0;}
@@ -137,7 +134,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="stat"><div class="num" id="statUrgent">-</div><div class="lbl">Due &#8804;3 days</div></div>
 </div>
 <div class="content">
-  <div id="loading" class="loading"><div class="spinner"></div>Loading from Google Sheets&#8230;</div>
+  <div id="loading" class="loading"><div class="spinner"></div>Loading&#8230;</div>
   <div class="tab-content active" id="tab-date"></div>
   <div class="tab-content" id="tab-colour"></div>
   <div class="tab-content" id="tab-trends"></div>
@@ -148,29 +145,8 @@ const STAGES=['Waiting to print','3D Printed','Sanded','Spray paint first coat',
 const STAGE_GROUP={'Waiting to print':'print','3D Printed':'print','Sanded':'sand','Spray paint first coat':'paint','Spray paint second coat':'paint','Gloss sprayed':'paint','Tissue Wrapped':'pack','Packed':'pack','Shipped':'ship'};
 const COLOURS={'wine red':'#7B1C1C','pastel pink':'#FFB3C1','dust pink':'#D48C8E','pastel terra':'#C4815E','pastel blue':'#A8C8EA','ocean blue':'#1A7ABF','cream':'#FFF8DC','pastel lilac':'#C9A8D4','sage green':'#87A878','chocolate brown':'#6B3A1F','caramel':'#C68642','forest green':'#2D6A2D','red':'#CC2222','orange':'#FF8C00','yellow':'#FFD700','green':'#22AA22','sky blue':'#87CEEB','purple':'#9B59B6','pink':'#FF69B4'};
 const ALIASES={'wine':'wine red','red wine':'wine red','red whine':'wine red','winered':'wine red','light pink':'pastel pink','pale pink':'pastel pink','baby pink':'pastel pink','pinky pastel':'pastel pink','patel pink':'pastel pink','dusty pink':'dust pink','dusk pink':'dust pink','terra':'pastel terra','terra pastel':'pastel terra','pastel terracotta':'pastel terra','pastel tierra':'pastel terra','pastel erra':'pastel terra','pale blue':'pastel blue','light blue':'pastel blue','dust blue':'pastel blue','dark ocean blue':'ocean blue','navy':'ocean blue','cobalt blue':'ocean blue','creme':'cream','pastel cream':'cream','lilac':'pastel lilac','pastel liliac':'pastel lilac','patel lilac':'pastel lilac','pastel purple':'pastel lilac','sage':'sage green','sagegreen':'sage green','safe green':'sage green','saga green':'sage green','sage greem':'sage green','green sage':'sage green','pastel sage green':'sage green','ocean green':'sage green','pastel green':'sage green','saliegroen':'sage green','choc':'chocolate brown','choc brown':'chocolate brown','chocolate':'chocolate brown','brown':'chocolate brown','forrest green':'forest green','butter yellow':'yellow','pastel yellow':'yellow','wiggly yellow':'yellow','wiggly blue':'sky blue','wiggly red':'red','hot pink':'pink'};
-function normalise(raw){
-  if(!raw)return null;
-  let n=String(raw).toLowerCase().trim().replace(/[.,;:]+$/,'').replace(/\s+/g,' ');
-  if(COLOURS[n])return n;
-  if(ALIASES[n])return ALIASES[n];
-  const ak=Object.keys(ALIASES).sort((a,b)=>b.length-a.length);
-  for(const k of ak){if(n.includes(k))return ALIASES[k];}
-  const ck=Object.keys(COLOURS).sort((a,b)=>b.length-a.length);
-  for(const k of ck){if(n.includes(k))return k;}
-  return null;
-}
-/* Debug version that explains each step */
-function normaliseDebug(raw){
-  if(!raw)return{result:null,step:'empty input'};
-  let n=String(raw).toLowerCase().trim().replace(/[.,;:]+$/,'').replace(/\s+/g,' ');
-  if(COLOURS[n])return{result:n,step:'exact colour match'};
-  if(ALIASES[n])return{result:ALIASES[n],step:'exact alias match for "'+n+'" → "'+ALIASES[n]+'"'};
-  const ak=Object.keys(ALIASES).sort((a,b)=>b.length-a.length);
-  for(const k of ak){if(n.includes(k))return{result:ALIASES[k],step:'substring alias — "'+n+'" contains "'+k+'" → "'+ALIASES[k]+'"'};}
-  const ck=Object.keys(COLOURS).sort((a,b)=>b.length-a.length);
-  for(const k of ck){if(n.includes(k))return{result:k,step:'substring colour — "'+n+'" contains "'+k+'"'};}
-  return{result:null,step:'no match found'};
-}
+function normalise(raw){if(!raw)return null;let n=String(raw).toLowerCase().trim().replace(/[.,;:]+$/,'').replace(/\s+/g,' ');if(COLOURS[n])return n;if(ALIASES[n])return ALIASES[n];const ak=Object.keys(ALIASES).sort((a,b)=>b.length-a.length);for(const k of ak){if(n.includes(k))return ALIASES[k];}const ck=Object.keys(COLOURS).sort((a,b)=>b.length-a.length);for(const k of ck){if(n.includes(k))return k;}return null;}
+function normaliseDebug(raw){if(!raw)return{result:null,step:'empty input'};let n=String(raw).toLowerCase().trim().replace(/[.,;:]+$/,'').replace(/\s+/g,' ');if(COLOURS[n])return{result:n,step:'exact colour match'};if(ALIASES[n])return{result:ALIASES[n],step:'exact alias match for "'+n+'" → "'+ALIASES[n]+'"'};const ak=Object.keys(ALIASES).sort((a,b)=>b.length-a.length);for(const k of ak){if(n.includes(k))return{result:ALIASES[k],step:'substring alias — "'+n+'" contains "'+k+'" → "'+ALIASES[k]+'"'};}const ck=Object.keys(COLOURS).sort((a,b)=>b.length-a.length);for(const k of ck){if(n.includes(k))return{result:k,step:'substring colour — "'+n+'" contains "'+k+'"'};}return{result:null,step:'no match found'};}
 function hexOf(c){return COLOURS[c]||'#ccc';}
 function textOn(hex){const h=hex.replace('#','');if(h.length<6)return'#fff';const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);return(0.299*r+0.587*g+0.114*b)/255>0.55?'#1a1a1a':'#ffffff';}
 function isLower(ch){return ch!==ch.toUpperCase()&&ch===ch.toLowerCase();}
@@ -178,19 +154,7 @@ function letterSize(ch,orderCm){const cm=parseInt(orderCm)||8;return isLower(ch)
 function getCollapsed(){try{return new Set(JSON.parse(localStorage.getItem('bl_collapsed')||'[]'));}catch(e){return new Set();}}
 function saveCollapsed(s){localStorage.setItem('bl_collapsed',JSON.stringify([...s]));}
 function toggleSection(el){const sec=el.closest('.date-section');const key=sec.dataset.dateKey;const col=getCollapsed();if(col.has(key)){col.delete(key);sec.classList.remove('collapsed');}else{col.add(key);sec.classList.add('collapsed');}saveCollapsed(col);}
-function testColour(){
-  const inp=document.getElementById('testerInput').value.trim();
-  const res=document.getElementById('testerResult');
-  if(!inp){res.classList.remove('show');return;}
-  const d=normaliseDebug(inp);
-  const bg=d.result?hexOf(d.result):'#eee';
-  const fg=d.result?textOn(bg):'#888';
-  res.innerHTML='<div class="cdot" style="width:16px;height:16px;background:'+bg+';border-radius:50%;border:1px solid rgba(0,0,0,0.15);flex-shrink:0"></div>'
-    +'<strong style="text-transform:capitalize">'+(d.result||'unrecognised')+'</strong>'
-    +(d.result?'<code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:11px">'+bg+'</code>':'')
-    +'<span style="font-size:12px;color:#888">'+d.step+'</span>';
-  res.classList.add('show');
-}
+function testColour(){const inp=document.getElementById('testerInput').value.trim();const res=document.getElementById('testerResult');if(!inp){res.classList.remove('show');return;}const d=normaliseDebug(inp);const bg=d.result?hexOf(d.result):'#eee';res.innerHTML='<div class="cdot" style="width:16px;height:16px;background:'+bg+';border-radius:50%;border:1px solid rgba(0,0,0,0.15);flex-shrink:0"></div><strong style="text-transform:capitalize">'+(d.result||'unrecognised')+'</strong>'+(d.result?'<code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:11px">'+bg+'</code>':'')+'<span style="font-size:12px;color:#888">'+d.step+'</span>';res.classList.add('show');}
 function parseColours(p,word){if(!p||!p.trim())return[];const t=String(p).trim();const allTests=[t.match(/^all\s+(.+?)(?:\s+for\s+al+\s+letters?)?$/i),t.match(/^(.+?)\s+for\s+al+\s+letters?$/i),t.match(/^all\s+letters?\s+(?:in\s+)?(.+?)$/i),t.match(/^(.+?)\s+for\s+all$/i),t.match(/^(.+?)\s+(?:in\s+)?all\s+letters?$/i)];for(const m of allTests){if(m){const cn=normalise(m[1]);if(cn)return word.split('').map(l=>({letter:l,canonical:cn,display:cn}));}}const re=/\b([A-Za-z])\s*[:\-]\s*([a-zA-Z][a-zA-Z\s]*?)(?=\s*[,.\/\n]|\s+[A-Za-z]\s*[:\-]|$)/g;const matches=[...t.matchAll(re)];if(matches.length>0){return matches.map(m=>{const raw=m[2].trim().replace(/[,.:]+$/,'').trim();const cn=normalise(raw);return{letter:m[1],canonical:cn,display:cn||raw};});}if(!t.includes(',')){const wc=normalise(t);if(wc)return word.split('').map(l=>({letter:l,canonical:wc,display:wc}));}return[{letter:'*',canonical:null,display:t,raw:true}];}
 function parseDate(s){if(!s)return new Date(2099,0,1);const str=String(s).trim();if(str.match(/^\d{4}-\d{2}-\d{2}T/)){const d=new Date(str);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}const iso=str.match(/^(\d{4})-(\d{2})-(\d{2})/);if(iso)return new Date(+iso[1],+iso[2]-1,+iso[3]);const mo={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,january:0,february:1,march:2,april:3,june:5,july:6,august:7,september:8,october:9,november:10,december:11};const m1=str.match(/^(\d+)\s+([a-z]+)\s+(\d{4})$/i);if(m1)return new Date(+m1[3],mo[m1[2].toLowerCase()]??0,+m1[1]);const m2=str.match(/^(\d+)\/(\d+)\/(\d{4})$/);if(m2)return new Date(+m2[3],+m2[2]-1,+m2[1]);return new Date(2099,0,1);}
 function fmtDate(s){const d=parseDate(s);if(d.getFullYear()===2099)return String(s);const D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const M=['January','February','March','April','May','June','July','August','September','October','November','December'];return D[d.getDay()]+' '+d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear();}
@@ -203,15 +167,40 @@ function render(){const orders=allOrders.filter(o=>o.needsPaint);let totalLetter
 function stagePill(s){const g=STAGE_GROUP[s]||'print';return'<span class="stage-pill stage-'+g+'">'+s+'</span>';}
 function dateSectionOpen(date,dClass,badge,meta,count){const col=getCollapsed();const isCol=col.has(date);const sk=date.replace(/&/g,'&amp;').replace(/"/g,'&quot;');return'<div class="date-section '+dClass+(isCol?' collapsed':'')+'" data-date-key="'+sk+'"><div class="date-header" onclick="toggleSection(this)"><div><div class="date-label">'+fmtDate(date)+'</div><div class="date-meta">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center">'+badge+'<span class="date-count">'+count+'</span><span class="toggle-arrow">&#9660;</span></div></div><div class="orders-grid">';}
 function buildChips(o){
+  /* Positional matching — handles:
+     1. Case mismatch: spec "L: cream" matches word "l" (lowercase)
+     2. Duplicate letters: "L: cream, L: sage" for ELLA → first L=cream, second L=sage
+     3. Missing letters: shows highlighted chip for any letter with no spec at all */
   if(!o.colours.length)return[];
   if(o.colours.length===1&&o.colours[0].raw)return o.colours;
-  const map={};let isPerLetter=false;
-  for(const c of o.colours){if(c.letter!=='*'&&!c.raw){map[c.letter]=c;isPerLetter=true;}}
-  if(!isPerLetter)return o.colours;
+  // Group specs by uppercase letter key, preserving order
+  const specsByLetter={};
+  let isPerLetter=false;
+  for(const c of o.colours){
+    if(c.letter!=='*'&&!c.raw){
+      const k=c.letter.toUpperCase();
+      if(!specsByLetter[k])specsByLetter[k]=[];
+      specsByLetter[k].push(c);
+      isPerLetter=true;
+    }
+  }
+  if(!isPerLetter)return o.colours; // all-same colour — already covers every letter
+  // Walk word characters; match each letter occurrence to its Nth spec positionally
+  const seenCount={};
   const chips=[];
   for(const ch of o.contents){
     if(!/[A-Za-z]/.test(ch))continue;
-    chips.push(map[ch]||{letter:ch,canonical:null,display:'colour missing',missing:true});
+    const k=ch.toUpperCase();
+    const n=seenCount[k]=(seenCount[k]||0);
+    seenCount[k]++;
+    const specs=specsByLetter[k];
+    if(specs){
+      // Nth occurrence → specs[n]; if more occurrences than specs, repeat last spec
+      const spec=specs[Math.min(n,specs.length-1)];
+      chips.push({letter:ch,canonical:spec.canonical,display:spec.display});
+    } else {
+      chips.push({letter:ch,canonical:null,display:'colour missing',missing:true});
+    }
   }
   return chips;
 }
@@ -231,10 +220,9 @@ function orderRowHtml(o){
     const chips=buildChips(o);
     colHtml='<div class="letter-colours">'+chips.map(c=>chipHtml(c,o)).join('')+'</div>';
   }
-  // Show the raw personalisation text from the sheet so mismatches are obvious
   const srcLine=o.personalisation
-    ?'<div class="raw-source">Sheet personalisation: “'+o.personalisation+'”</div>'
-    :'<div class="raw-source"><span>No personalisation in sheet</span></div>';
+    ?'<div class="raw-source">Sheet: “'+o.personalisation+'”</div>'
+    :'<div class="raw-source" style="color:#e67e22">No personalisation in sheet</div>';
   return'<div class="order-row"><div class="order-info"><div class="customer-name">'+o.name+'</div><div class="order-num">'+o.order+'</div>'+(o.cm?'<span class="order-size">'+o.cm+'cm</span>':'')+'</div><div class="order-letters"><div class="letter-name">'+o.contents+'</div>'+colHtml+srcLine+'</div><div class="stage-col">'+stagePill(o.nextStage)+'<div class="stage-dots">'+dots+'</div><div class="stage-lbl">'+o.nextIdx+'/'+STAGES.length+' steps done</div></div></div>';
 }
 function renderDateTab(orders){
@@ -242,8 +230,7 @@ function renderDateTab(orders){
   for(const o of orders){if(!byDate[o.ship])byDate[o.ship]=[];byDate[o.ship].push(o);}
   const sorted=Object.keys(byDate).sort((a,b)=>parseDate(a)-parseDate(b));
   if(!sorted.length){document.getElementById('tab-date').innerHTML='<div class="no-orders">Nothing left to paint!</div>';return;}
-  // Colour tester panel
-  let html='<div class="colour-tester"><h3>&#128270; Colour Parser — test any text from your sheet</h3><div class="tester-row"><input id="testerInput" class="tester-input" placeholder="e.g. dusty pink, pastel pink, N: wine red D: sage" onkeydown="if(event.key===\'Enter\')testColour()"><button class="tester-btn" onclick="testColour()">Test</button></div><div id="testerResult" class="tester-result"></div></div>';
+  let html='<div class="colour-tester"><h3>&#128270; Colour Parser — test any text from your sheet</h3><div class="tester-row"><input id="testerInput" class="tester-input" placeholder="e.g. dusty pink  /  E: pastel pink, L: cream, A: sage" onkeydown="if(event.key===\'Enter\')testColour()"><button class="tester-btn" onclick="testColour()">Test</button></div><div id="testerResult" class="tester-result"></div></div>';
   for(const date of sorted){
     const os=[...byDate[date]].sort((a,b)=>(parseInt(b.cm)||0)-(parseInt(a.cm)||0));
     const days=daysUntil(date);
@@ -268,43 +255,7 @@ function renderDateTab(orders){
   document.getElementById('tab-date').innerHTML=html;
 }
 function renderColourTab(orders){const byDate={};for(const o of orders){if(!byDate[o.ship])byDate[o.ship]={};for(const c of o.colours){if(c.raw||!c.canonical)continue;const sz=letterSize(c.letter,o.cm)+'cm';if(!byDate[o.ship][c.canonical])byDate[o.ship][c.canonical]={};if(!byDate[o.ship][c.canonical][sz])byDate[o.ship][c.canonical][sz]=[];byDate[o.ship][c.canonical][sz].push({letter:c.letter,lc:isLower(c.letter),name:o.name,contents:o.contents,cm:o.cm});}}const sortedDates=Object.keys(byDate).sort((a,b)=>parseDate(a)-parseDate(b));if(!sortedDates.length){document.getElementById('tab-colour').innerHTML='<div class="no-orders">Nothing left to paint!</div>';return;}let html='';for(const date of sortedDates){const colourMap=byDate[date];const days=daysUntil(date);let dClass='',badge='';if(days<0){dClass='date-overdue';badge='<span class="badge" style="background:#c0392b">'+Math.abs(days)+'d overdue</span>';}else if(days===0){dClass='date-today';badge='<span class="badge" style="background:#e67e22">Today!</span>';}else if(days<=3){dClass='date-soon';badge='<span class="badge" style="background:#2980b9">'+days+'d</span>';}else badge='<span class="badge" style="background:#555">'+days+'d</span>';let totalLetters=0;Object.values(colourMap).forEach(szMap=>Object.values(szMap).forEach(arr=>totalLetters+=arr.length));const sortedColours=Object.entries(colourMap).sort((a,b)=>{const ca=Object.values(a[1]).reduce((s,x)=>s+x.length,0);const cb=Object.values(b[1]).reduce((s,x)=>s+x.length,0);return cb-ca;});const dateUnknowns=orders.filter(o=>o.ship===date&&o.colours.some(c=>c.raw||!c.canonical));const meta=sortedColours.length+' colour'+(sortedColours.length!==1?'s':'')+' \xb7 '+totalLetters+' letters'+(dateUnknowns.length?' \xb7 '+dateUnknowns.length+' need review':'');html+=dateSectionOpen(date,dClass,badge,meta,totalLetters+' letters');for(const [colour,szMap] of sortedColours){const bg=hexOf(colour),fg=textOn(bg);const sizeKeys=Object.keys(szMap).sort((a,b)=>parseFloat(b)-parseFloat(a));const colTotal=Object.values(szMap).reduce((s,x)=>s+x.length,0);html+='<div style="border-bottom:1px solid #f0f0f0;padding:10px 14px;"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div class="cdot" style="background:'+bg+';width:14px;height:14px;border:1px solid rgba(0,0,0,0.15)"></div><span style="font-weight:700;font-size:13px;text-transform:capitalize;">'+colour+'</span><span style="background:'+bg+';color:'+fg+';padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;">'+colTotal+' letter'+(colTotal!==1?'s':'')+'</span><span style="font-size:11px;color:#999;">'+sizeKeys.map(sz=>szMap[sz].length+'\xd7 '+sz).join(' \xb7 ')+'</span></div>';for(const sz of sizeKeys){const items=[...szMap[sz]].sort((a,b)=>a.letter.localeCompare(b.letter));html+='<div style="margin-bottom:6px;"><div style="font-size:10px;font-weight:700;color:#aaa;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">'+sz+'</div><div style="display:flex;flex-wrap:wrap;gap:5px;">';for(const it of items){const ltrStyle=it.lc?'font-style:italic;':'';const lcBorder=it.lc?'border:2px solid rgba(255,255,255,0.45);':'';html+='<div style="display:flex;flex-direction:column;align-items:center;background:'+bg+';border-radius:6px;padding:6px 9px;min-width:52px;text-align:center;'+lcBorder+'"><div style="font-size:19px;font-weight:800;color:'+fg+';line-height:1;'+ltrStyle+'">'+it.letter+'</div><div style="font-size:9px;color:'+fg+';opacity:0.8;margin-top:2px;">'+it.contents+'</div></div>';}html+='</div></div>';}html+='</div>';}if(dateUnknowns.length){html+='<div style="border-top:2px solid #f39c12;"><div style="background:#fff8f0;padding:7px 14px;font-size:11px;font-weight:700;color:#e67e22;">⚠ Colour to be confirmed — '+dateUnknowns.length+' order'+(dateUnknowns.length!==1?'s':'')+'</div>';for(const o of dateUnknowns){html+='<div class="order-row"><div class="order-info"><div class="customer-name">'+o.name+'</div><div class="order-num">'+o.order+'</div>'+(o.cm?'<span class="order-size">'+o.cm+'cm</span>':'')+'</div><div class="order-letters"><div class="letter-name">'+o.contents+'</div><div class="raw-colours warn">⚠ '+o.colours.map(c=>c.display).filter((v,i,a)=>a.indexOf(v)===i).join(' / ')+'</div><div class="raw-source">Sheet: “'+o.personalisation+'”</div></div></div>';}html+='</div>';}html+='</div></div>';}document.getElementById('tab-colour').innerHTML=html;}
-function renderTrendsTab(){
-  const letterFreq={},letterUcFreq={},letterLcFreq={},colourFreq={},wordFreq={},sizeFreq={},stageFreq={};
-  for(const o of allOrders){
-    for(const ch of o.contents){if(!/[A-Za-z]/.test(ch))continue;const k=ch.toUpperCase();letterFreq[k]=(letterFreq[k]||0)+1;if(isLower(ch)){letterLcFreq[k]=(letterLcFreq[k]||0)+1;}else{letterUcFreq[k]=(letterUcFreq[k]||0)+1;}}
-    for(const c of o.colours){if(c.canonical)colourFreq[c.canonical]=(colourFreq[c.canonical]||0)+1;}
-    const w=o.contents.trim();if(w)wordFreq[w]=(wordFreq[w]||0)+1;
-    const sz=(parseInt(o.cm)||'?')+'cm';sizeFreq[sz]=(sizeFreq[sz]||0)+1;
-    const sg=STAGE_GROUP[o.nextStage]||'print';stageFreq[sg]=(stageFreq[sg]||0)+1;
-  }
-  const topColours=Object.entries(colourFreq).sort((a,b)=>b[1]-a[1]);
-  const topWords=Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,20);
-  const sortedLetters=Object.entries(letterFreq).sort((a,b)=>b[1]-a[1]);
-  const maxLF=sortedLetters[0]?.[1]||1,maxCF=topColours[0]?.[1]||1,maxWF=topWords[0]?.[1]||1;
-  const totalLC=Object.values(letterFreq).reduce((s,v)=>s+v,0);
-  const stageLabels={print:'Printing',sand:'Sanding',paint:'Painting',pack:'Packing',ship:'Ready to ship'};
-  const stageColors={print:'#2980b9',sand:'#b7950b',paint:'#8e44ad',pack:'#27ae60',ship:'#555'};
-  const maxSZ=Math.max(...Object.values(sizeFreq),1),maxSG=Math.max(...Object.values(stageFreq),1);
-  let html='<div class="trends-wrap"><div class="trends-stats">';
-  html+='<div class="ts"><div class="ts-n">'+allOrders.length+'</div><div class="ts-l">Active orders</div></div>';
-  html+='<div class="ts"><div class="ts-n">'+totalLC+'</div><div class="ts-l">Total letters</div></div>';
-  html+='<div class="ts"><div class="ts-n">'+topColours.length+'</div><div class="ts-l">Colours in use</div></div>';
-  html+='<div class="ts"><div class="ts-n">'+sortedLetters.length+'</div><div class="ts-l">Unique letters</div></div>';
-  html+='</div><div class="trends-grid">';
-  html+='<div class="trends-card"><div class="tc-title">&#127912; Colour Popularity</div>';
-  for(const [cn,cnt] of topColours){const bg=hexOf(cn);const pct=Math.round(cnt/maxCF*100);html+='<div class="bar-row"><div style="display:flex;align-items:center;gap:6px;width:130px;flex-shrink:0;overflow:hidden"><div class="cdot" style="background:'+bg+'"></div><span style="font-size:12px;text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cn+'</span></div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+bg+'"></div></div><span class="bar-val">'+cnt+'</span></div>';}
-  html+='</div><div class="trends-card"><div class="tc-title">&#128288; Letter Demand</div>';
-  for(const [ltr,cnt] of sortedLetters){const uc=letterUcFreq[ltr]||0,lc=letterLcFreq[ltr]||0;const ucP=Math.round(uc/maxLF*100),lcP=Math.round(lc/maxLF*100);html+='<div class="lbar-row"><span style="width:14px;font-weight:700;font-size:13px;text-align:center;flex-shrink:0">'+ltr+'</span><div class="bar-track"><div style="width:'+ucP+'%;height:100%;background:#2c3e50"></div><div style="width:'+lcP+'%;height:100%;background:#7c4dbd"></div></div><span class="bar-val">'+cnt+'</span></div>';}
-  html+='<div class="legend-row"><span><span class="legend-dot" style="background:#2c3e50"></span>Uppercase</span><span><span class="legend-dot" style="background:#7c4dbd"></span>Lowercase</span></div></div>';
-  html+='<div class="trends-card"><div class="tc-title">&#9997;&#65039; Popular Names</div>';
-  for(const [w,cnt] of topWords){const pct=Math.round(cnt/maxWF*100);html+='<div class="bar-row"><span style="font-weight:700;font-size:12px;letter-spacing:.5px;width:100px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+w+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#2c3e50"></div></div><span class="bar-val">'+cnt+'</span></div>';}
-  html+='</div><div class="trends-card"><div class="tc-title">&#128207; Sizes &amp; Pipeline</div><div class="sub-section-title">Order sizes</div>';
-  for(const [sz,cnt] of Object.entries(sizeFreq).sort((a,b)=>b[1]-a[1])){const pct=Math.round(cnt/maxSZ*100);html+='<div class="bar-row"><span style="font-weight:700;font-size:12px;width:42px;flex-shrink:0">'+sz+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#2980b9"></div></div><span class="bar-val">'+cnt+'</span></div>';}
-  html+='<div class="sub-section-title">Pipeline stage</div>';
-  for(const [sg,cnt] of Object.entries(stageFreq).sort((a,b)=>b[1]-a[1])){const pct=Math.round(cnt/maxSG*100);const sc=stageColors[sg]||'#999';html+='<div class="bar-row"><span style="font-size:12px;width:90px;flex-shrink:0">'+(stageLabels[sg]||sg)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+sc+'"></div></div><span class="bar-val">'+cnt+'</span></div>';}
-  html+='</div></div></div>';
-  document.getElementById('tab-trends').innerHTML=html;
-}
+function renderTrendsTab(){const letterFreq={},letterUcFreq={},letterLcFreq={},colourFreq={},wordFreq={},sizeFreq={},stageFreq={};for(const o of allOrders){for(const ch of o.contents){if(!/[A-Za-z]/.test(ch))continue;const k=ch.toUpperCase();letterFreq[k]=(letterFreq[k]||0)+1;if(isLower(ch)){letterLcFreq[k]=(letterLcFreq[k]||0)+1;}else{letterUcFreq[k]=(letterUcFreq[k]||0)+1;}}for(const c of o.colours){if(c.canonical)colourFreq[c.canonical]=(colourFreq[c.canonical]||0)+1;}const w=o.contents.trim();if(w)wordFreq[w]=(wordFreq[w]||0)+1;const sz=(parseInt(o.cm)||'?')+'cm';sizeFreq[sz]=(sizeFreq[sz]||0)+1;const sg=STAGE_GROUP[o.nextStage]||'print';stageFreq[sg]=(stageFreq[sg]||0)+1;}const topColours=Object.entries(colourFreq).sort((a,b)=>b[1]-a[1]);const topWords=Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,20);const sortedLetters=Object.entries(letterFreq).sort((a,b)=>b[1]-a[1]);const maxLF=sortedLetters[0]?.[1]||1,maxCF=topColours[0]?.[1]||1,maxWF=topWords[0]?.[1]||1;const totalLC=Object.values(letterFreq).reduce((s,v)=>s+v,0);const stageLabels={print:'Printing',sand:'Sanding',paint:'Painting',pack:'Packing',ship:'Ready to ship'};const stageColors={print:'#2980b9',sand:'#b7950b',paint:'#8e44ad',pack:'#27ae60',ship:'#555'};const maxSZ=Math.max(...Object.values(sizeFreq),1),maxSG=Math.max(...Object.values(stageFreq),1);let html='<div class="trends-wrap"><div class="trends-stats"><div class="ts"><div class="ts-n">'+allOrders.length+'</div><div class="ts-l">Active orders</div></div><div class="ts"><div class="ts-n">'+totalLC+'</div><div class="ts-l">Total letters</div></div><div class="ts"><div class="ts-n">'+topColours.length+'</div><div class="ts-l">Colours in use</div></div><div class="ts"><div class="ts-n">'+sortedLetters.length+'</div><div class="ts-l">Unique letters</div></div></div><div class="trends-grid"><div class="trends-card"><div class="tc-title">&#127912; Colour Popularity</div>';for(const [cn,cnt] of topColours){const bg=hexOf(cn);const pct=Math.round(cnt/maxCF*100);html+='<div class="bar-row"><div style="display:flex;align-items:center;gap:6px;width:130px;flex-shrink:0;overflow:hidden"><div class="cdot" style="background:'+bg+'"></div><span style="font-size:12px;text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cn+'</span></div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+bg+'"></div></div><span class="bar-val">'+cnt+'</span></div>';}html+='</div><div class="trends-card"><div class="tc-title">&#128288; Letter Demand</div>';for(const [ltr,cnt] of sortedLetters){const uc=letterUcFreq[ltr]||0,lc=letterLcFreq[ltr]||0;const ucP=Math.round(uc/maxLF*100),lcP=Math.round(lc/maxLF*100);html+='<div class="lbar-row"><span style="width:14px;font-weight:700;font-size:13px;text-align:center;flex-shrink:0">'+ltr+'</span><div class="bar-track"><div style="width:'+ucP+'%;height:100%;background:#2c3e50"></div><div style="width:'+lcP+'%;height:100%;background:#7c4dbd"></div></div><span class="bar-val">'+cnt+'</span></div>';}html+='<div class="legend-row"><span><span class="legend-dot" style="background:#2c3e50"></span>Uppercase</span><span><span class="legend-dot" style="background:#7c4dbd"></span>Lowercase</span></div></div><div class="trends-card"><div class="tc-title">&#9997;&#65039; Popular Names</div>';for(const [w,cnt] of topWords){const pct=Math.round(cnt/maxWF*100);html+='<div class="bar-row"><span style="font-weight:700;font-size:12px;letter-spacing:.5px;width:100px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+w+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#2c3e50"></div></div><span class="bar-val">'+cnt+'</span></div>';}html+='</div><div class="trends-card"><div class="tc-title">&#128207; Sizes &amp; Pipeline</div><div class="sub-section-title">Order sizes</div>';for(const [sz,cnt] of Object.entries(sizeFreq).sort((a,b)=>b[1]-a[1])){const pct=Math.round(cnt/maxSZ*100);html+='<div class="bar-row"><span style="font-weight:700;font-size:12px;width:42px;flex-shrink:0">'+sz+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#2980b9"></div></div><span class="bar-val">'+cnt+'</span></div>';}html+='<div class="sub-section-title">Pipeline stage</div>';for(const [sg,cnt] of Object.entries(stageFreq).sort((a,b)=>b[1]-a[1])){const pct=Math.round(cnt/maxSG*100);const sc=stageColors[sg]||'#999';html+='<div class="bar-row"><span style="font-size:12px;width:90px;flex-shrink:0">'+(stageLabels[sg]||sg)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+sc+'"></div></div><span class="bar-val">'+cnt+'</span></div>';}html+='</div></div></div>';document.getElementById('tab-trends').innerHTML=html;}
 loadData();
 </script>
 </body>
