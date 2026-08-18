@@ -172,14 +172,14 @@ function buildChips(o){if(!o.colours.length)return[];if(o.colours.length===1&&o.
 function chipHtml(c,o){const lc=isLower(c.letter),sz=letterSize(c.letter,o.cm),missing=!c.canonical;const cls='letter-chip'+(lc?' lc':'')+(missing?' no-colour':'');const dot=missing?'<div class="cdot"></div>':'<div class="cdot" style="background:'+hexOf(c.canonical)+'"></div>';const label=missing?('&#9888; '+(c.display||'colour missing')):(c.display||'?');return'<div class="'+cls+'"><span class="ltr">'+(c.letter!=='*'?c.letter:'')+'</span>'+(c.letter!=='*'?'<span class="chip-size">'+sz+'cm</span>':'')+dot+'<span class="colour-name">'+label+'</span></div>';}
 function orderRowHtml(o){const dots=STAGES.map((_,si)=>'<div class="sdot '+(si<o.nextIdx?'done':si===o.nextIdx?'next':'todo')+'"></div>').join('');let colHtml='';if(o.colours.length===1&&o.colours[0].raw){colHtml='<div class="raw-colours warn">&#9888; Colour unclear: '+o.colours[0].display+'</div>';}else{const chips=buildChips(o);colHtml='<div class="letter-colours">'+chips.map(c=>chipHtml(c,o)).join('')+'</div>';}const srcLine=o.personalisation?'<div class="raw-source">Sheet: "'+o.personalisation+'"</div>':'<div class="raw-source" style="color:#e67e22">No personalisation in sheet</div>';return'<div class="order-row"><div class="order-info"><div class="customer-name">'+o.name+'</div><div class="order-num">'+o.order+'</div>'+(o.cm?'<span class="order-size">'+o.cm+'cm</span>':'')+'</div><div class="order-letters"><div class="letter-name">'+o.contents+'</div>'+colHtml+srcLine+'</div><div class="stage-col">'+stagePill(o.nextStage)+'<div class="stage-dots">'+dots+'</div><div class="stage-lbl">'+o.nextIdx+'/'+STAGES.length+' steps done</div></div></div>';}
 function renderDateTab(orders){
-  // Pickup merge groups — dates to combine into one section (months 0-indexed, so 7=August)
-  const MERGE_GROUPS=[
-    {key:'mg0',dates:[[2026,7,25],[2026,7,26]]}
-  ];
+  // Dates stored as UTC timestamps; parseDate converts to local time (AEST/AEDT = UTC+10/+11)
+  // So the sheet date "Aug 25" arrives as ~2026-08-24T14:00Z which parses locally to Aug 25.
+  // MERGE_GROUPS uses local parsed year/month(0-indexed)/day to match.
+  const MERGE_GROUPS=[{key:'mg0',dates:[[2026,7,25],[2026,7,26]]}];
   function getMergeKey(dateStr){const d=parseDate(dateStr);for(const mg of MERGE_GROUPS){for(const [y,m,day] of mg.dates){if(d.getFullYear()===y&&d.getMonth()===m&&d.getDate()===day)return mg.key;}}return null;}
   const byDate={};
   const mgInfo={};
-  for(const mg of MERGE_GROUPS)mgInfo[mg.key]={dates:mg.dates.map(([y,m,d])=>new Date(y,m,d)),rawSet:new Set(),orders:[]};
+  for(const mg of MERGE_GROUPS)mgInfo[mg.key]={dates:mg.dates.map(([y,m,d])=>new Date(y,m,d)),rawSet:new Set()};
   for(const o of orders){const mk=getMergeKey(o.ship);if(mk){byDate[mk]=byDate[mk]||[];byDate[mk].push(o);mgInfo[mk].rawSet.add(o.ship);}else{byDate[o.ship]=byDate[o.ship]||[];byDate[o.ship].push(o);}}
   function sortTs(k){if(mgInfo[k])return Math.max(...mgInfo[k].dates.map(d=>d.getTime()));return parseDate(k).getTime();}
   const sorted=Object.keys(byDate).sort((a,b)=>sortTs(a)-sortTs(b));
@@ -196,7 +196,7 @@ function renderDateTab(orders){
       const days=latestRaw?daysUntil(latestRaw):0;
       dClass='date-merge';
       badge='<span class="badge" style="background:rgba(255,255,255,0.25);color:white">&#128467; Same pickup</span>';
-      if(days<0)badge+=' <span class="badge" style="background:rgba(0,0,0,0.2)">'+'&#9888; '+Math.abs(days)+'d past</span>';
+      if(days<0)badge+=' <span class="badge" style="background:rgba(0,0,0,0.2)">&#9888; '+Math.abs(days)+'d past</span>';
       else if(days===0)badge+=' <span class="badge" style="background:rgba(0,0,0,0.2)">Today!</span>';
       else if(days<=3)badge+=' <span class="badge" style="background:rgba(0,0,0,0.2)">'+days+'d</span>';
       meta=os.length+' order'+(os.length!==1?'s':'')+' — combined pickup';
