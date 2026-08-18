@@ -147,9 +147,7 @@ const STAGES=['Waiting to print','3D Printed','Sanded','Spray paint first coat',
 const STAGE_GROUP={'Waiting to print':'print','3D Printed':'print','Sanded':'sand','Spray paint first coat':'paint','Spray paint second coat':'paint','Gloss sprayed':'paint','Tissue Wrapped':'pack','Packed':'pack','Shipped':'ship'};
 const COLOURS={'wine red':'#7B1C1C','pastel pink':'#FFB3C1','dust pink':'#D48C8E','pastel terra':'#C4815E','pastel blue':'#A8C8EA','ocean blue':'#1A7ABF','cream':'#FFF8DC','pastel lilac':'#C9A8D4','sage green':'#87A878','chocolate brown':'#6B3A1F','caramel':'#C68642','forest green':'#2D6A2D','red':'#CC2222','orange':'#FF8C00','yellow':'#FFD700','green':'#22AA22','sky blue':'#87CEEB','purple':'#9B59B6','pink':'#FF69B4'};
 const ALIASES={'wine':'wine red','red wine':'wine red','red whine':'wine red','winered':'wine red','light pink':'pastel pink','pale pink':'pastel pink','baby pink':'pastel pink','pinky pastel':'pastel pink','patel pink':'pastel pink','dusty pink':'dust pink','dusk pink':'dust pink','terra':'pastel terra','terra pastel':'pastel terra','pastel terracotta':'pastel terra','pastel tierra':'pastel terra','pastel erra':'pastel terra','pale blue':'pastel blue','light blue':'pastel blue','dust blue':'pastel blue','dark ocean blue':'ocean blue','navy':'ocean blue','cobalt blue':'ocean blue','creme':'cream','pastel cream':'cream','lilac':'pastel lilac','pastel liliac':'pastel lilac','patel lilac':'pastel lilac','pastel purple':'pastel lilac','sage':'sage green','sagegreen':'sage green','safe green':'sage green','saga green':'sage green','sage greem':'sage green','green sage':'sage green','pastel sage green':'sage green','ocean green':'sage green','pastel green':'sage green','saliegroen':'sage green','choc':'chocolate brown','choc brown':'chocolate brown','chocolate':'chocolate brown','brown':'chocolate brown','forrest green':'forest green','butter yellow':'yellow','pastel yellow':'yellow','wiggly yellow':'yellow','wiggly blue':'sky blue','wiggly red':'red','hot pink':'pink'};
-// Global pickup merge groups — months are 0-indexed (7 = August).
-// Dates are matched against the LOCAL parsed date (sheet stores UTC timestamps that convert to AEST/AEDT).
-const MERGE_GROUPS=[{key:'mg0',dates:[[2026,7,25],[2026,7,26]]}];
+const MERGE_GROUPS=[{key:'mg0',dates:[[2026,7,25],[2026,7,26]]},{key:'mg1',dates:[[2026,7,27],[2026,7,28]]}];
 const MERGE_INFO={};
 for(const mg of MERGE_GROUPS)MERGE_INFO[mg.key]={dates:mg.dates.map(([y,m,d])=>new Date(y,m,d)),rawSet:new Set()};
 function getMergeKey(dateStr){const d=parseDate(dateStr);for(const mg of MERGE_GROUPS){for(const [y,m,day] of mg.dates){if(d.getFullYear()===y&&d.getMonth()===m&&d.getDate()===day)return mg.key;}}return null;}
@@ -180,31 +178,18 @@ function dateSectionOpen(dateKey,dateLabel,dClass,badge,meta,count){const col=ge
 function buildChips(o){if(!o.colours.length)return[];if(o.colours.length===1&&o.colours[0].raw)return o.colours;const specsByLetter={};let isPerLetter=false;for(const c of o.colours){if(c.letter!=='*'&&!c.raw){const k=c.letter.toUpperCase();if(!specsByLetter[k])specsByLetter[k]=[];specsByLetter[k].push(c);isPerLetter=true;}}if(!isPerLetter)return o.colours;const seenCount={};const chips=[];for(const ch of o.contents){if(!/[A-Za-z]/.test(ch))continue;const k=ch.toUpperCase();const n=seenCount[k]=(seenCount[k]||0);seenCount[k]++;const specs=specsByLetter[k];if(specs){const spec=specs[Math.min(n,specs.length-1)];chips.push({letter:ch,canonical:spec.canonical,display:spec.display});}else{chips.push({letter:ch,canonical:null,display:'colour missing',missing:true});}}return chips;}
 function chipHtml(c,o){const lc=isLower(c.letter),sz=letterSize(c.letter,o.cm),missing=!c.canonical;const cls='letter-chip'+(lc?' lc':'')+(missing?' no-colour':'');const dot=missing?'<div class="cdot"></div>':'<div class="cdot" style="background:'+hexOf(c.canonical)+'"></div>';const label=missing?('&#9888; '+(c.display||'colour missing')):(c.display||'?');return'<div class="'+cls+'"><span class="ltr">'+(c.letter!=='*'?c.letter:'')+'</span>'+(c.letter!=='*'?'<span class="chip-size">'+sz+'cm</span>':'')+dot+'<span class="colour-name">'+label+'</span></div>';}
 function orderRowHtml(o){const dots=STAGES.map((_,si)=>'<div class="sdot '+(si<o.nextIdx?'done':si===o.nextIdx?'next':'todo')+'"></div>').join('');let colHtml='';if(o.colours.length===1&&o.colours[0].raw){colHtml='<div class="raw-colours warn">&#9888; Colour unclear: '+o.colours[0].display+'</div>';}else{const chips=buildChips(o);colHtml='<div class="letter-colours">'+chips.map(c=>chipHtml(c,o)).join('')+'</div>';}const srcLine=o.personalisation?'<div class="raw-source">Sheet: "'+o.personalisation+'"</div>':'<div class="raw-source" style="color:#e67e22">No personalisation in sheet</div>';return'<div class="order-row"><div class="order-info"><div class="customer-name">'+o.name+'</div><div class="order-num">'+o.order+'</div>'+(o.cm?'<span class="order-size">'+o.cm+'cm</span>':'')+'</div><div class="order-letters"><div class="letter-name">'+o.contents+'</div>'+colHtml+srcLine+'</div><div class="stage-col">'+stagePill(o.nextStage)+'<div class="stage-dots">'+dots+'</div><div class="stage-lbl">'+o.nextIdx+'/'+STAGES.length+' steps done</div></div></div>';}
+function buildDateBuckets(orders){for(const mg of MERGE_GROUPS)MERGE_INFO[mg.key].rawSet=new Set();const byDate={};for(const o of orders){const mk=getMergeKey(o.ship);const dk=mk||o.ship;if(mk)MERGE_INFO[mk].rawSet.add(o.ship);byDate[dk]=byDate[dk]||[];byDate[dk].push(o);}return byDate;}
 function renderDateTab(orders){
-  // Reset rawSets for this render
-  for(const mg of MERGE_GROUPS)MERGE_INFO[mg.key].rawSet=new Set();
-  const byDate={};
-  for(const o of orders){const mk=getMergeKey(o.ship);if(mk){byDate[mk]=byDate[mk]||[];byDate[mk].push(o);MERGE_INFO[mk].rawSet.add(o.ship);}else{byDate[o.ship]=byDate[o.ship]||[];byDate[o.ship].push(o);}}
+  const byDate=buildDateBuckets(orders);
   const sorted=Object.keys(byDate).sort((a,b)=>mergeSortTs(a)-mergeSortTs(b));
   if(!sorted.length){document.getElementById('tab-date').innerHTML='<div class="no-orders">Nothing left to paint!</div>';return;}
   let html='<div class="colour-tester"><h3>&#128270; Colour Parser — test any text from your sheet</h3><div class="tester-row"><input id="testerInput" class="tester-input" placeholder="e.g. dusty pink  /  E: pastel pink, L: cream, A: sage" onkeydown="if(event.key===\'Enter\')testColour()"><button class="tester-btn" onclick="testColour()">Test</button></div><div id="testerResult" class="tester-result"></div></div>';
   for(const dk of sorted){
     const os=[...byDate[dk]].sort((a,b)=>(parseInt(b.cm)||0)-(parseInt(a.cm)||0));
     let dClass='',badge='',dateLabel='',meta='';
-    if(MERGE_INFO[dk]){
-      dClass='date-merge';badge=mergeBadge(dk);dateLabel=mergeLabel(dk);
-      meta=os.length+' order'+(os.length!==1?'s':'')+' — combined pickup';
-    }else{
-      dateLabel=fmtDate(dk);
-      const days=daysUntil(dk);
-      if(days<0){dClass='date-overdue';badge='<span class="badge" style="background:#c0392b">'+Math.abs(days)+'d overdue</span>';}
-      else if(days===0){dClass='date-today';badge='<span class="badge" style="background:#e67e22">Today!</span>';}
-      else if(days<=3){dClass='date-soon';badge='<span class="badge" style="background:#2980b9">'+days+'d</span>';}
-      else badge='<span class="badge" style="background:#555">'+days+'d</span>';
-      meta=os.length+' order'+(os.length!==1?'s':'')+' needing paint';
-    }
-    const tally={};
-    for(const o of os)for(const c of o.colours)if(c.canonical){tally[c.canonical]=(tally[c.canonical]||0)+1;}
+    if(MERGE_INFO[dk]){dClass='date-merge';badge=mergeBadge(dk);dateLabel=mergeLabel(dk);meta=os.length+' order'+(os.length!==1?'s':'')+' — combined pickup';}
+    else{dateLabel=fmtDate(dk);const days=daysUntil(dk);if(days<0){dClass='date-overdue';badge='<span class="badge" style="background:#c0392b">'+Math.abs(days)+'d overdue</span>';}else if(days===0){dClass='date-today';badge='<span class="badge" style="background:#e67e22">Today!</span>';}else if(days<=3){dClass='date-soon';badge='<span class="badge" style="background:#2980b9">'+days+'d</span>';}else badge='<span class="badge" style="background:#555">'+days+'d</span>';meta=os.length+' order'+(os.length!==1?'s':'')+' needing paint';}
+    const tally={};for(const o of os)for(const c of o.colours)if(c.canonical){tally[c.canonical]=(tally[c.canonical]||0)+1;}
     const tallyArr=Object.entries(tally).sort((a,b)=>b[1]-a[1]);
     html+=dateSectionOpen(dk,dateLabel,dClass,badge,meta,os.length);
     let lastSz=null;
@@ -215,41 +200,22 @@ function renderDateTab(orders){
   document.getElementById('tab-date').innerHTML=html;
 }
 function renderColourTab(orders){
-  // Reset rawSets
-  for(const mg of MERGE_GROUPS)MERGE_INFO[mg.key].rawSet=new Set();
-  const byDate={};        // key -> {colour -> {size -> items[]}}
-  const byDateOrders={};  // key -> orders[] (for unknowns)
-  for(const o of orders){
-    const mk=getMergeKey(o.ship);
-    const dk=mk||o.ship;
-    if(mk)MERGE_INFO[mk].rawSet.add(o.ship);
-    byDateOrders[dk]=byDateOrders[dk]||[];
-    byDateOrders[dk].push(o);
-    if(!byDate[dk])byDate[dk]={};
-    for(const c of o.colours){
-      if(c.raw||!c.canonical)continue;
-      const sz=letterSize(c.letter,o.cm)+'cm';
-      byDate[dk][c.canonical]=byDate[dk][c.canonical]||{};
-      byDate[dk][c.canonical][sz]=byDate[dk][c.canonical][sz]||[];
-      byDate[dk][c.canonical][sz].push({letter:c.letter,lc:isLower(c.letter),name:o.name,contents:o.contents,cm:o.cm});
-    }
+  const byDate=buildDateBuckets(orders);
+  const byColour={};
+  const byDateOrders={};
+  for(const [dk,os] of Object.entries(byDate)){
+    byDateOrders[dk]=os;
+    byColour[dk]={};
+    for(const o of os){for(const c of o.colours){if(c.raw||!c.canonical)continue;const sz=letterSize(c.letter,o.cm)+'cm';byColour[dk][c.canonical]=byColour[dk][c.canonical]||{};byColour[dk][c.canonical][sz]=byColour[dk][c.canonical][sz]||[];byColour[dk][c.canonical][sz].push({letter:c.letter,lc:isLower(c.letter),name:o.name,contents:o.contents,cm:o.cm});}}
   }
-  const sortedDates=Object.keys(byDate).sort((a,b)=>mergeSortTs(a)-mergeSortTs(b));
+  const sortedDates=Object.keys(byColour).sort((a,b)=>mergeSortTs(a)-mergeSortTs(b));
   if(!sortedDates.length){document.getElementById('tab-colour').innerHTML='<div class="no-orders">Nothing left to paint!</div>';return;}
   let html='';
   for(const dk of sortedDates){
-    const colourMap=byDate[dk];
+    const colourMap=byColour[dk];
     let dClass='',badge='',dateLabel='';
-    if(MERGE_INFO[dk]){
-      dClass='date-merge';badge=mergeBadge(dk);dateLabel=mergeLabel(dk);
-    }else{
-      dateLabel=fmtDate(dk);
-      const days=daysUntil(dk);
-      if(days<0){dClass='date-overdue';badge='<span class="badge" style="background:#c0392b">'+Math.abs(days)+'d overdue</span>';}
-      else if(days===0){dClass='date-today';badge='<span class="badge" style="background:#e67e22">Today!</span>';}
-      else if(days<=3){dClass='date-soon';badge='<span class="badge" style="background:#2980b9">'+days+'d</span>';}
-      else badge='<span class="badge" style="background:#555">'+days+'d</span>';
-    }
+    if(MERGE_INFO[dk]){dClass='date-merge';badge=mergeBadge(dk);dateLabel=mergeLabel(dk);}
+    else{dateLabel=fmtDate(dk);const days=daysUntil(dk);if(days<0){dClass='date-overdue';badge='<span class="badge" style="background:#c0392b">'+Math.abs(days)+'d overdue</span>';}else if(days===0){dClass='date-today';badge='<span class="badge" style="background:#e67e22">Today!</span>';}else if(days<=3){dClass='date-soon';badge='<span class="badge" style="background:#2980b9">'+days+'d</span>';}else badge='<span class="badge" style="background:#555">'+days+'d</span>';}
     let totalLetters=0;Object.values(colourMap).forEach(szMap=>Object.values(szMap).forEach(arr=>totalLetters+=arr.length));
     const sortedColours=Object.entries(colourMap).sort((a,b)=>{const ca=Object.values(a[1]).reduce((s,x)=>s+x.length,0);const cb=Object.values(b[1]).reduce((s,x)=>s+x.length,0);return cb-ca;});
     const dateUnknowns=(byDateOrders[dk]||[]).filter(o=>o.colours.some(c=>c.raw||!c.canonical));
